@@ -31,13 +31,13 @@ var SourceLock = class {
 	}
 };
 // ../../../packages/lib/src/shared/wait.ts
-function waitFor(check, timeoutMs = 1e4) {
+function waitFor(check, timeoutMs = 1e4, intervalMs = 0) {
 	return new Promise((resolve, reject) => {
 		let started = Date.now(), poll = () => {
 			let value = check();
 			if (value !== void 0) return resolve(value);
 			if (timeoutMs !== !1 && Date.now() - started > timeoutMs) return reject(Error(`waitFor timed out after ${timeoutMs} ms`));
-			setTimeout(poll, 0);
+			setTimeout(poll, intervalMs);
 		};
 		poll();
 	});
@@ -48,6 +48,9 @@ function num(value, fallback, min = -Infinity, max = Infinity) {
 }
 function int(value, fallback, min = -Infinity, max = Infinity) {
 	return Math.round(num(value, fallback, min, max));
+}
+function bool(value, fallback) {
+	return typeof value == "boolean" ? value : fallback;
 }
 function record(value) {
 	return typeof value == "object" && value && !Array.isArray(value) ? value : {};
@@ -165,6 +168,7 @@ const CORE = {
 	owned: "ai:owned",
 	id: "ai:vid",
 	props: "ai:props",
+	setup: "ai:setup",
 	fuel: "fuel"
 };
 // ../../../packages/lib/src/fivem/exports.ts
@@ -757,16 +761,29 @@ async function vehicleType(model, asker) {
 	let answer = await triggerClientCallback(CORE.vehicleTypeCallback, asker, [model]).catch(() => null);
 	return typeof answer != "string" || !TYPES.has(answer) ? null : (types.set(model, answer), answer);
 }
+async function seatPlayer(vehicle, source, seat) {
+	let ped = GetPlayerPed(String(source));
+	return ped ? waitFor(() => {
+		if (!DoesEntityExist(vehicle)) return !1;
+		if (GetPedInVehicleSeat(vehicle, seat) === ped) return !0;
+		SetPedIntoVehicle(ped, vehicle, seat);
+	}, 2e3, 150).catch(() => !1) : !1;
+}
 async function spawnVehicle(options) {
 	let type = options.asker === void 0 ? options.type ?? "automobile" : await vehicleType(options.model, options.asker);
 	if (!type) return null;
 	let { x, y, z, heading } = options.coords, vehicle = CreateVehicleServerSetter(GetHashKey(options.model), type, x, y, z, heading);
 	if (!await waitFor(() => DoesEntityExist(vehicle) || void 0, 5e3).catch(() => !1)) return null;
-	options.persistent !== !1 && SetEntityOrphanMode(vehicle, 2), options.plate && SetVehicleNumberPlateText(vehicle, options.plate.slice(0, 8));
+	options.persistent !== !1 && SetEntityOrphanMode(vehicle, 2), options.plate && SetVehicleNumberPlateText(vehicle, options.plate.slice(0, 8)), options.bucket !== void 0 && SetEntityRoutingBucket(vehicle, options.bucket), options.locked && SetVehicleDoorsLocked(vehicle, 2);
 	let state = Entity(vehicle).state;
-	options.fuel !== void 0 && state.set(VEHICLE_BAGS.fuel, options.fuel, !0);
+	options.fuel !== void 0 && state.set(VEHICLE_BAGS.fuel, options.fuel, !0), options.props && state.set(VEHICLE_BAGS.props, options.props, !0), options.setup && state.set(VEHICLE_BAGS.setup, options.setup, !0);
 	for (let [key, value] of Object.entries(options.bags ?? {})) state.set(key, value, !0);
-	return options.driver !== void 0 && SetPedIntoVehicle(GetPlayerPed(String(options.driver)), vehicle, -1), options.keysTo !== void 0 && vehicleKeys.give(options.keysTo, vehicle, options.purpose ?? "temporary"), vehicle;
+	options.keysTo !== void 0 && vehicleKeys.give(options.keysTo, vehicle, options.purpose ?? "temporary");
+	let riders = [...options.driver === void 0 ? [] : [{
+		source: options.driver,
+		seat: -1
+	}], ...options.seats ?? []];
+	return await Promise.all(riders.map((r) => seatPlayer(vehicle, r.source, r.seat))), vehicle;
 }
 function nearestVehicleTo(source, metres) {
 	let ped = GetPlayerPed(String(source)), own = GetVehiclePedIsIn(ped, !1);
@@ -991,7 +1008,10 @@ function readSettings(raw) {
 		noclipFaster: num(s.noclipFaster, 4, 1, 50),
 		noclipSlow: num(s.noclipSlow, .05, .01, 1),
 		announceKind: kind,
-		announceSeconds: int(s.announceSeconds, 10, 2, 60)
+		announceSeconds: int(s.announceSeconds, 10, 2, 60),
+		carMaxed: bool(s.carMaxed, !1),
+		carFuel: int(s.carFuel, 100, 0, 100),
+		carEngineOn: bool(s.carEngineOn, !0)
 	};
 }
 // resource/server/content.ts
@@ -1046,7 +1066,15 @@ const panel = new AdminPanel({
 				min: 2,
 				max: 60,
 				integer: !0
-			}
+			},
+			carMaxed: { type: "bool" },
+			carFuel: {
+				type: "number",
+				min: 0,
+				max: 100,
+				integer: !0
+			},
+			carEngineOn: { type: "bool" }
 		},
 		defaults: {
 			noclipSpeed: 1,
@@ -1056,7 +1084,10 @@ const panel = new AdminPanel({
 			noclipFaster: 4,
 			noclipSlow: .05,
 			announceKind: "warning",
-			announceSeconds: 10
+			announceSeconds: 10,
+			carMaxed: !1,
+			carFuel: 100,
+			carEngineOn: !0
 		}
 	} },
 	tabs: [{
@@ -1065,107 +1096,138 @@ const panel = new AdminPanel({
 		icon: "sliders",
 		label: "ADMIN_TAB_SETTINGS",
 		desc: "ADMIN_TAB_SETTINGS_DESC",
-		cards: [{
-			icon: "gauge",
-			title: "ADMIN_C_NOCLIP",
-			desc: "ADMIN_C_NOCLIP_DESC",
-			fields: [
-				{
-					widget: "number",
-					path: "noclipSpeed",
-					label: "ADMIN_F_NOCLIP_SPEED",
-					hint: "ADMIN_H_NOCLIP_SPEED",
-					min: .1,
-					max: 50,
-					step: .5
-				},
-				{
-					widget: "number",
-					path: "noclipMaxSpeed",
-					label: "ADMIN_F_NOCLIP_MAX",
-					hint: "ADMIN_H_NOCLIP_MAX",
-					min: 1,
-					max: 100,
-					step: 1
-				},
-				{
-					widget: "number",
-					path: "noclipStep",
-					label: "ADMIN_F_NOCLIP_STEP",
-					hint: "ADMIN_H_NOCLIP_STEP",
-					min: .1,
-					max: 10,
-					step: .1
-				},
-				{
-					widget: "number",
-					path: "noclipFast",
-					label: "ADMIN_F_NOCLIP_FAST",
-					hint: "ADMIN_H_NOCLIP_FAST",
-					min: 1,
-					max: 20,
-					step: .5,
-					unit: "x"
-				},
-				{
-					widget: "number",
-					path: "noclipFaster",
-					label: "ADMIN_F_NOCLIP_FASTER",
-					hint: "ADMIN_H_NOCLIP_FASTER",
-					min: 1,
-					max: 50,
-					step: .5,
-					unit: "x"
-				},
-				{
-					widget: "number",
-					path: "noclipSlow",
-					label: "ADMIN_F_NOCLIP_SLOW",
-					hint: "ADMIN_H_NOCLIP_SLOW",
-					min: .01,
-					max: 1,
-					step: .01,
-					unit: "x"
-				}
-			]
-		}, {
-			icon: "comments",
-			title: "ADMIN_C_ANNOUNCE",
-			desc: "ADMIN_C_ANNOUNCE_DESC",
-			fields: [{
-				widget: "select",
-				path: "announceKind",
-				label: "ADMIN_F_ANNOUNCE_KIND",
-				hint: "ADMIN_H_ANNOUNCE_KIND",
-				options: [
+		cards: [
+			{
+				icon: "gauge",
+				title: "ADMIN_C_NOCLIP",
+				desc: "ADMIN_C_NOCLIP_DESC",
+				fields: [
 					{
-						value: "info",
-						label: "ADMIN_O_INFO"
+						widget: "number",
+						path: "noclipSpeed",
+						label: "ADMIN_F_NOCLIP_SPEED",
+						hint: "ADMIN_H_NOCLIP_SPEED",
+						min: .1,
+						max: 50,
+						step: .5
 					},
 					{
-						value: "success",
-						label: "ADMIN_O_SUCCESS"
+						widget: "number",
+						path: "noclipMaxSpeed",
+						label: "ADMIN_F_NOCLIP_MAX",
+						hint: "ADMIN_H_NOCLIP_MAX",
+						min: 1,
+						max: 100,
+						step: 1
 					},
 					{
-						value: "warning",
-						label: "ADMIN_O_WARNING"
+						widget: "number",
+						path: "noclipStep",
+						label: "ADMIN_F_NOCLIP_STEP",
+						hint: "ADMIN_H_NOCLIP_STEP",
+						min: .1,
+						max: 10,
+						step: .1
 					},
 					{
-						value: "error",
-						label: "ADMIN_O_ERROR"
+						widget: "number",
+						path: "noclipFast",
+						label: "ADMIN_F_NOCLIP_FAST",
+						hint: "ADMIN_H_NOCLIP_FAST",
+						min: 1,
+						max: 20,
+						step: .5,
+						unit: "x"
+					},
+					{
+						widget: "number",
+						path: "noclipFaster",
+						label: "ADMIN_F_NOCLIP_FASTER",
+						hint: "ADMIN_H_NOCLIP_FASTER",
+						min: 1,
+						max: 50,
+						step: .5,
+						unit: "x"
+					},
+					{
+						widget: "number",
+						path: "noclipSlow",
+						label: "ADMIN_F_NOCLIP_SLOW",
+						hint: "ADMIN_H_NOCLIP_SLOW",
+						min: .01,
+						max: 1,
+						step: .01,
+						unit: "x"
 					}
 				]
-			}, {
-				widget: "number",
-				path: "announceSeconds",
-				label: "ADMIN_F_ANNOUNCE_TIME",
-				hint: "ADMIN_H_ANNOUNCE_TIME",
-				min: 2,
-				max: 60,
-				step: 1,
-				unit: "s"
-			}]
-		}]
+			},
+			{
+				icon: "comments",
+				title: "ADMIN_C_ANNOUNCE",
+				desc: "ADMIN_C_ANNOUNCE_DESC",
+				fields: [{
+					widget: "select",
+					path: "announceKind",
+					label: "ADMIN_F_ANNOUNCE_KIND",
+					hint: "ADMIN_H_ANNOUNCE_KIND",
+					options: [
+						{
+							value: "info",
+							label: "ADMIN_O_INFO"
+						},
+						{
+							value: "success",
+							label: "ADMIN_O_SUCCESS"
+						},
+						{
+							value: "warning",
+							label: "ADMIN_O_WARNING"
+						},
+						{
+							value: "error",
+							label: "ADMIN_O_ERROR"
+						}
+					]
+				}, {
+					widget: "number",
+					path: "announceSeconds",
+					label: "ADMIN_F_ANNOUNCE_TIME",
+					hint: "ADMIN_H_ANNOUNCE_TIME",
+					min: 2,
+					max: 60,
+					step: 1,
+					unit: "s"
+				}]
+			},
+			{
+				icon: "car",
+				title: "ADMIN_C_CAR",
+				desc: "ADMIN_C_CAR_DESC",
+				fields: [
+					{
+						widget: "switch",
+						path: "carMaxed",
+						label: "ADMIN_F_CAR_MAXED",
+						hint: "ADMIN_H_CAR_MAXED"
+					},
+					{
+						widget: "number",
+						path: "carFuel",
+						label: "ADMIN_F_CAR_FUEL",
+						min: 0,
+						max: 100,
+						step: 5,
+						unit: "%"
+					},
+					{
+						widget: "switch",
+						path: "carEngineOn",
+						label: "ADMIN_F_CAR_ENGINE",
+						hint: "ADMIN_H_CAR_ENGINE"
+					}
+				]
+			}
+		]
 	}]
 }), content = { settings: readSettings(panel.get("settings")) };
 panel.onChange("settings", () => content.settings = readSettings(panel.get("settings")));
@@ -1224,7 +1286,12 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 				...p,
 				heading: GetEntityHeading(admin)
 			},
-			fuel: 100,
+			fuel: content.settings.carFuel,
+			setup: {
+				maxed: content.settings.carMaxed || void 0,
+				engineOn: content.settings.carEngineOn || void 0,
+				dirt: 0
+			},
 			driver: source,
 			keysTo: source,
 			purpose: "temporary",

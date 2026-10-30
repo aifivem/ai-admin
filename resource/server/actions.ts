@@ -126,7 +126,12 @@ export const actions = {
       model: hashName,
       type,
       coords,
-      fuel: 100,
+      fuel: content.settings.carFuel,
+      setup: {
+        maxed: content.settings.carMaxed || undefined,
+        engineOn: content.settings.carEngineOn || undefined,
+        dirt: 0,
+      },
       driver: source,
       keysTo: source,
       purpose: "temporary",

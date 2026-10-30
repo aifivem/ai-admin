@@ -1,7 +1,6 @@
 {
   "KEYBIND_MENU": "Admin: quick menu",
   "KEYBIND_NOCLIP": "Admin: noclip on / off",
-
   "COMMAND_NOCLIP": "Noclip on or off",
   "COMMAND_TPM": "Teleport to the waypoint",
   "COMMAND_TP": "Teleport to coordinates",
@@ -20,7 +19,6 @@
   "COMMAND_P_COORDS": "x y z, x, y, z or x y (onto the ground)",
   "COMMAND_P_MODEL": "Vehicle model, for example adder",
   "COMMAND_P_MESSAGE": "The message",
-
   "MENU_TITLE": "Admin",
   "MENU_NOCLIP_ON": "Noclip on",
   "MENU_NOCLIP_OFF": "Noclip off",
@@ -36,11 +34,9 @@
   "MENU_BRING": "Bring",
   "MENU_HEAL": "Heal",
   "MENU_REVIVE": "Revive",
-
   "CAR_TITLE": "Spawn vehicle",
   "CAR_MODEL": "Model",
   "CAR_CONFIRM": "Spawn",
-
   "NOTIFY_NOCLIP_ON": "Noclip on",
   "NOTIFY_NOCLIP_OFF": "Noclip off",
   "NOTIFY_COORDS": "{0} (printed in F8)",
@@ -52,7 +48,6 @@
   "NOTIFY_CAR_SPAWNED": "Spawned {0}.",
   "NOTIFY_DV_DONE": "Vehicle deleted.",
   "NOTIFY_ANNOUNCE": "Announcement: {0}",
-
   "ERR_NOT_ALLOWED": "You do not have permission for this.",
   "ERR_NO_WAYPOINT": "Set a waypoint on the map first.",
   "ERR_TARGET": "That player is not online.",
@@ -78,7 +73,6 @@
   "ERR_MODEL": "No vehicle with that model name.",
   "ERR_VEHICLE": "The vehicle could not be created.",
   "ERR_NO_VEHICLE": "No vehicle in or next to you.",
-
   "ADMIN_TITLE": "Admin tools",
   "ADMIN_TAB_SETTINGS": "Settings",
   "ADMIN_TAB_SETTINGS_DESC": "How noclip moves and how announcements look. The menu (F9) and noclip keys are set in ai-core's Keybinds tab.",
@@ -105,5 +99,12 @@
   "ADMIN_O_WARNING": "Warning",
   "ADMIN_O_ERROR": "Error",
   "ADMIN_F_ANNOUNCE_TIME": "Time on screen",
-  "ADMIN_H_ANNOUNCE_TIME": "Seconds the announcement stays."
+  "ADMIN_H_ANNOUNCE_TIME": "Seconds the announcement stays.",
+  "ADMIN_C_CAR": "Admin vehicle",
+  "ADMIN_C_CAR_DESC": "What a vehicle spawned with /car or the admin menu comes with. The admin always sits in the driver seat with the keys.",
+  "ADMIN_F_CAR_MAXED": "Fully upgraded",
+  "ADMIN_H_CAR_MAXED": "Engine, brakes, transmission, suspension and armour at their top level, turbo and xenons on.",
+  "ADMIN_F_CAR_FUEL": "Fuel",
+  "ADMIN_F_CAR_ENGINE": "Engine running",
+  "ADMIN_H_CAR_ENGINE": "The engine is already on when the admin sits in."
 }

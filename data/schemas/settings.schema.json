@@ -57,6 +57,20 @@
       "type": "integer",
       "minimum": 2,
       "maximum": 60
+    },
+    "carMaxed": {
+      "description": "Fully upgraded: Engine, brakes, transmission, suspension and armour at their top level, turbo and xenons on.",
+      "type": "boolean"
+    },
+    "carFuel": {
+      "description": "Fuel",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "carEngineOn": {
+      "description": "Engine running: The engine is already on when the admin sits in.",
+      "type": "boolean"
     }
   },
   "required": []

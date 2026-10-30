@@ -1,4 +1,4 @@
-import { int, num, record, str } from "@aicore-fivem/lib/shared";
+import { bool, int, num, record, str } from "@aicore-fivem/lib/shared";
 import type { NotificationKind } from "@aicore-fivem/shared";
 
 /** ai-admin's contracts and panel content. No natives. */
@@ -94,6 +94,10 @@ export interface Settings {
   announceKind: NotificationKind;
   /** Seconds an announcement stays on screen. */
   announceSeconds: number;
+  /** The admin `/car`: every performance mod maxed, fuel, engine running. */
+  carMaxed: boolean;
+  carFuel: number;
+  carEngineOn: boolean;
 }
 
 const KINDS: NotificationKind[] = ["info", "success", "warning", "error"];
@@ -110,5 +114,8 @@ export function readSettings(raw: unknown): Settings {
     noclipSlow: num(s.noclipSlow, 0.05, 0.01, 1),
     announceKind: kind,
     announceSeconds: int(s.announceSeconds, 10, 2, 60),
+    carMaxed: bool(s.carMaxed, false),
+    carFuel: int(s.carFuel, 100, 0, 100),
+    carEngineOn: bool(s.carEngineOn, true),
   };
 }
