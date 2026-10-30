@@ -114,7 +114,7 @@ export const actions = {
     if (!(await waitFor(() => DoesEntityExist(vehicle) || undefined, 5000).catch(() => false))) return "ERR_VEHICLE";
     Entity(vehicle).state.set(VEHICLE_BAGS.fuel, 100, true);
     SetPedIntoVehicle(admin, vehicle, -1);
-    vehicleKeys.give(source, vehicle);
+    vehicleKeys.give(source, vehicle, "temporary");
     notify(source, Locale("NOTIFY_CAR_SPAWNED", hashName), "success");
     log("spawned a vehicle", source, undefined, { model: hashName, ...p });
     return null;
