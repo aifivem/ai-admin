@@ -1,6 +1,6 @@
 # ai-admin
 
-Admin tools: noclip, teleports (waypoint, coordinates, to / from players), heal and revive, vehicle spawn and delete, announcements, and a quick menu (F9) through ai-core's shared menu. Depends on ai-core (ACE `ai.admin`, menu, input, notifications, logs, admin panel); ai-death for heal / revive and ai-vehiclekeys for keys when they run. Research, decisions and the in-game test list: `docs/research/ai-admin.md`.
+Admin tools: noclip, teleports (waypoint, coordinates, to / from players), heal and revive, vehicle spawn and delete, announcements, and a quick menu (F9) through ai-core's shared menu. Depends on ai-core (ACE `ai.admin`, menu, input, notifications, logs, admin panel); ai-death for heal / revive and ai-vehiclekeys for keys when they run.
 
 ## Decisions
 
