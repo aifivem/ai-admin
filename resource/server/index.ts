@@ -1,5 +1,5 @@
-import { aiLogChannels } from "@aicore-fivem/lib/server";
-import "./commands";
-import "./menu";
+import { aiLogChannels } from "@aicore-fivem/lib/server"
+import "./commands"
+import "./menu"
 
-aiLogChannels({ actions: {} });
+aiLogChannels({ actions: {} })

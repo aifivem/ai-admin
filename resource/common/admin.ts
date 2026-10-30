@@ -1,5 +1,5 @@
-import { int, num, record, str } from "@aicore-fivem/lib/shared";
-import type { NotificationKind } from "@aicore-fivem/shared";
+import { int, num, record, str } from "@aicore-fivem/lib/shared"
+import type { NotificationKind } from "@aicore-fivem/shared"
 
 /** ai-admin's contracts and panel content. No natives. */
 
@@ -20,67 +20,87 @@ export const EVENTS = {
   openMenu: "ai-admin:client:openMenu",
   /** Server -> admin: () print and show the position (the /coords command). */
   coords: "ai-admin:client:coords",
-} as const;
+} as const
 
 /** What the quick menu asks the server to do; the commands run the same actions. */
-export const MENU_ACTIONS = ["tpm", "heal", "revive", "car", "dv", "goto", "bring", "panel"] as const;
-export type MenuAction = (typeof MENU_ACTIONS)[number];
+export const MENU_ACTIONS = [
+  "tpm",
+  "heal",
+  "revive",
+  "car",
+  "dv",
+  "goto",
+  "bring",
+  "panel",
+] as const
+export type MenuAction = (typeof MENU_ACTIONS)[number]
 export const isMenuAction = (v: unknown): v is MenuAction =>
-  typeof v === "string" && (MENU_ACTIONS as readonly string[]).includes(v);
+  typeof v === "string" && (MENU_ACTIONS as readonly string[]).includes(v)
 
 /** Lang key of an action's error (also the `error` of a callback answer). */
-export type ErrorKey = Extract<keyof typeof import("../../locales/en.json"), `ERR_${string}`>;
+export type ErrorKey = Extract<
+  keyof typeof import("../../locales/en.json"),
+  `ERR_${string}`
+>
 
 export interface TeleportPoint {
-  x: number;
-  y: number;
-  z?: number;
+  x: number
+  y: number
+  z?: number
 }
 
 export interface PlayerEntry {
-  id: number;
-  name: string;
+  id: number
+  name: string
 }
 
 /** A teleport target from the server: null (waypoint), a point, or undefined when the value is not one. */
 export function toTeleportPoint(v: unknown): TeleportPoint | null | undefined {
-  if (v == null) return null;
-  const p = record(v);
-  if (typeof p.x !== "number" || typeof p.y !== "number" || !Number.isFinite(p.x) || !Number.isFinite(p.y))
-    return undefined;
-  return typeof p.z === "number" && Number.isFinite(p.z) ? { x: p.x, y: p.y, z: p.z } : { x: p.x, y: p.y };
+  if (v == null) return null
+  const p = record(v)
+  if (
+    typeof p.x !== "number" ||
+    typeof p.y !== "number" ||
+    !Number.isFinite(p.x) ||
+    !Number.isFinite(p.y)
+  )
+    return undefined
+  return typeof p.z === "number" && Number.isFinite(p.z)
+    ? { x: p.x, y: p.y, z: p.z }
+    : { x: p.x, y: p.y }
 }
 
 export function toPlayerEntries(v: unknown): PlayerEntry[] {
-  if (!Array.isArray(v)) return [];
-  const out: PlayerEntry[] = [];
+  if (!Array.isArray(v)) return []
+  const out: PlayerEntry[] = []
   for (const raw of v) {
-    const p = record(raw);
-    if (typeof p.id === "number" && Number.isInteger(p.id)) out.push({ id: p.id, name: str(p.name, String(p.id), 64) });
+    const p = record(raw)
+    if (typeof p.id === "number" && Number.isInteger(p.id))
+      out.push({ id: p.id, name: str(p.name, String(p.id), 64) })
   }
-  return out;
+  return out
 }
 
 export interface Settings {
   /** Noclip speed level at start and after a wheel click. */
-  noclipSpeed: number;
-  noclipMaxSpeed: number;
+  noclipSpeed: number
+  noclipMaxSpeed: number
   /** Speed level change per mouse wheel step. */
-  noclipStep: number;
+  noclipStep: number
   /** Held Shift / Alt / Ctrl multiply the speed. */
-  noclipFast: number;
-  noclipFaster: number;
-  noclipSlow: number;
-  announceKind: NotificationKind;
+  noclipFast: number
+  noclipFaster: number
+  noclipSlow: number
+  announceKind: NotificationKind
   /** Seconds an announcement stays on screen. */
-  announceSeconds: number;
+  announceSeconds: number
 }
 
-const KINDS: NotificationKind[] = ["info", "success", "warning", "error"];
+const KINDS: NotificationKind[] = ["info", "success", "warning", "error"]
 
 export function readSettings(raw: unknown): Settings {
-  const s = record(raw);
-  const kind = KINDS.find((k) => k === s.announceKind) ?? "warning";
+  const s = record(raw)
+  const kind = KINDS.find((k) => k === s.announceKind) ?? "warning"
   return {
     noclipSpeed: num(s.noclipSpeed, 1, 0.1, 50),
     noclipMaxSpeed: num(s.noclipMaxSpeed, 16, 1, 100),
@@ -90,5 +110,5 @@ export function readSettings(raw: unknown): Settings {
     noclipSlow: num(s.noclipSlow, 0.05, 0.01, 1),
     announceKind: kind,
     announceSeconds: int(s.announceSeconds, 10, 2, 60),
-  };
+  }
 }

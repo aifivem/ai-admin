@@ -1,4 +1,4 @@
-import type { PanelSchema } from "@aicore-fivem/shared";
+import type { PanelSchema } from "@aicore-fivem/shared"
 
 /** ai-admin's panel: noclip speeds and how announcements look. */
 export const adminSchema: PanelSchema = {
@@ -15,7 +15,10 @@ export const adminSchema: PanelSchema = {
         noclipFast: { type: "number", min: 1, max: 20 },
         noclipFaster: { type: "number", min: 1, max: 50 },
         noclipSlow: { type: "number", min: 0.01, max: 1 },
-        announceKind: { type: "enum", values: ["info", "success", "warning", "error"] },
+        announceKind: {
+          type: "enum",
+          values: ["info", "success", "warning", "error"],
+        },
         announceSeconds: { type: "number", min: 2, max: 60, integer: true },
       },
       defaults: {
@@ -134,4 +137,4 @@ export const adminSchema: PanelSchema = {
       ],
     },
   ],
-};
+}
