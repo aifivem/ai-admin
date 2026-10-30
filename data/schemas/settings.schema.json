@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ai-admin/data/settings.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "This file's JSON Schema (for editors)."
+    },
+    "noclipSpeed": {
+      "description": "Start speed: Speed level when noclip starts and after a wheel click.",
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 50
+    },
+    "noclipMaxSpeed": {
+      "description": "Highest speed: The mouse wheel stops at this level.",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "noclipStep": {
+      "description": "Wheel step: Level change per mouse wheel notch; also the lowest level.",
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10
+    },
+    "noclipFast": {
+      "description": "Shift: Speed multiplier while Shift is held.",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 20
+    },
+    "noclipFaster": {
+      "description": "Alt: Speed multiplier while Alt is held.",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 50
+    },
+    "noclipSlow": {
+      "description": "Ctrl: Speed multiplier while Ctrl is held (below 1 slows down).",
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 1
+    },
+    "announceKind": {
+      "description": "Style: Colour and icon of the notification.",
+      "enum": [
+        "info",
+        "success",
+        "warning",
+        "error"
+      ]
+    },
+    "announceSeconds": {
+      "description": "Time on screen: Seconds the announcement stays.",
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 60
+    }
+  },
+  "required": []
+}

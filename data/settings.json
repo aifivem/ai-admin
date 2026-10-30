@@ -1,4 +1,5 @@
 {
+  "$schema": "./schemas/settings.schema.json",
   "noclipSpeed": 1,
   "noclipMaxSpeed": 16,
   "noclipStep": 0.5,
