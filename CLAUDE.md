@@ -1,18 +1,20 @@
 # ai-admin
 
-Admin tools: noclip, teleports (waypoint, coordinates, to / from players), heal and revive, vehicle spawn and delete, announcements, and a quick menu (F9) through ai-core's shared menu. Depends on ai-core (ACE `ai.admin`, menu, input, notifications, logs, admin panel); ai-death for heal / revive when it runs; vehicle keys go through ai-core's key layer (lib `vehicleKeys`).
+Admin tools: noclip, teleports (waypoint, coordinates, to / from players), heal and revive, vehicle spawn and delete, announcements and player warnings, weather and time, and a quick menu (F9) through ai-core's shared menu. Depends on ai-core (ACE `ai.admin`, menu, input, notifications, logs, admin panel); ai-death for heal / revive when it runs; vehicle keys go through ai-core's key layer (lib `vehicleKeys`).
 
 ## Decisions
 
 - Noclip is the owner's exlife implementation copied unchanged in feel (controls, speed steps, camera); only its speed numbers come from the panel, read once per start. Keep it that way: a change to how noclip moves needs the owner.
 - The server decides everything: commands are `addCommand` with `restricted: true`; the menu's one action callback has the `isAdmin()` guard; noclip on is asked from the server, off is always allowed. Clients teleport only on the server's event.
-- `weather`, `time`, `blackout`, `freezetime` go through ai-core's world layer (lib `world`), so they work with any weather script that answers the qb-weathersync contract.
+- `weather`, `time`, `blackout`, `freezetime` go through ai-core's world layer (lib `world`), so they work with any weather script that answers the qb-weathersync contract. Commands, the quick menu (Weather and time) and the panel's World tab run the same `server/world.ts` actions; each stores what it set in the `controls` file so the World tab shows the last admin change (the lib has no freeze / blackout getters, and the weather script may change the weather on its own).
+- The panel has no action buttons, so the Messages and World tabs are forms on one `sync: "admin"` settings file (`controls`, `server/controls.ts`): a Send switch sends its form (the rule refuses an empty message, an offline or own player, an empty reason), then the form clears and the switch turns off one tick later (`setImmediate`, or the edit's own delta shows it on again); a changed world field applies at once (refused while no weather script runs). Handlers act only on an admin's edit: `server/panel.ts` subclasses the lib's `AdminPanel` to expose the editing admin (`editor`, 0 for the script's own `commit`). Send switches are reset at start.
+- Warnings: `actions.warn` sends `EVENTS.warned` to the player (a notification plus ai-core's input dialog with the reason read-only and an "I understand" button), notifies the admin and logs who, whom and why on `actions`. Also in the quick menu: Players > player > Warn. Announcements use the style and time of the Messages tab (also for `/announce` and the quick menu's Announcement).
 - Commands and menu run the same functions (`server/actions.ts`), which return an `ERR_*` lang key or null and log what they changed on channel `actions`.
 - Vehicles come from lib `spawnVehicle` with key purpose `temporary`; lib `vehicleType(model, admin)` checks the model first (ai-core's client answers), before the admin's old car is deleted.
 - Item commands (`giveitem`, `removeitem`, `clearinv`, `openinv`) and the menu's item / inventory player actions go through lib `inventory`, so they work with any inventory ai-core adapts. `/items` and the menu's "Give item" open ai-core's item picker (lib `itemPicker`, capped by the target's weight); Take sends the list through `EVENTS.giveItems` (admin guard, at most 50 rows), each row given by the same action as a single item, stopping at the first refusal.
 - `givekey [id]` gives the keys of the vehicle the admin sits in or stands next to (lib `vehicleKeys`, purpose `temporary`).
 - Noclip shows its keys on the HUD's key hints (lib `keyHints`) while it runs. The menu's "always show map" toggle calls ai-hud's `SetMinimapAlways` (optional export).
-- Lang keys: `ADMIN_*` are panel texts only; game texts use `ERR_`, `NOTIFY_`, `MENU_`, `CAR_`, `COMMAND_`, `KEYBIND_` (ai-core's generic panel texts also start with `ADMIN_`).
+- Lang keys: `ADMIN_*` are panel texts only; game texts use `ERR_`, `NOTIFY_`, `MENU_`, `CAR_`, `COMMAND_`, `KEYBIND_`, `WEATHER_`, `ANNOUNCE_`, `WARN_`, `TIME_` (ai-core's generic panel texts also start with `ADMIN_`).
 
 ## Contracts
 
@@ -25,5 +27,5 @@ Admin tools: noclip, teleports (waypoint, coordinates, to / from players), heal 
 
 ## Entry points
 
-- Commands `resource/server/commands.ts`, menu callbacks `server/menu.ts`, the actions `server/actions.ts`, panel `server/schema.ts`.
-- Client: noclip `resource/client/noclip.ts`, teleport `client/teleport.ts`, menu `client/menu.ts`.
+- Commands `resource/server/commands.ts`, menu callbacks `server/menu.ts`, the actions `server/actions.ts` and `server/world.ts`, panel `server/schema.ts` + `server/schemaControls.ts`, panel forms `server/controls.ts`.
+- Client: noclip `resource/client/noclip.ts`, teleport `client/teleport.ts`, menu `client/menu.ts`, announce / warn inputs and the Weather and time menu `client/worldMenu.ts`.

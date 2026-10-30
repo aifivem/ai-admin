@@ -1,4 +1,5 @@
 import {
+  input,
   Keybind,
   notify,
   onServerEvent,
@@ -23,6 +24,32 @@ onServerEvent(
 onServerEvent(EVENTS.toggleNoclip, () => void setNoclip(!noclip.on));
 onServerEvent(EVENTS.openMenu, () => void openMenu());
 onServerEvent(EVENTS.openItems, () => void giveItem(null));
+
+// An admin's warning stays on screen until the player confirms it.
+onServerEvent(
+  EVENTS.warned,
+  {
+    args: ([reason]) =>
+      typeof reason === "string" ? [reason.slice(0, 300)] : null,
+  },
+  (reason) => {
+    notify(Locale("NOTIFY_WARNING"), "error");
+    void input({
+      title: Locale("WARN_TITLE"),
+      confirm: Locale("WARN_CONFIRM"),
+      fields: [
+        {
+          name: "reason",
+          label: Locale("WARN_REASON"),
+          type: "text",
+          multiline: true,
+          value: reason,
+          readOnly: true,
+        },
+      ],
+    });
+  },
+);
 
 onServerEvent(EVENTS.coords, () => {
   const { x, y, z } = player.coords();

@@ -1,5 +1,4 @@
 import { bool, int, num, record, str } from "@aicore-fivem/lib/shared";
-import type { NotificationKind } from "@aicore-fivem/shared";
 
 /** ai-admin's contracts and panel content. No natives. */
 
@@ -24,6 +23,10 @@ export const EVENTS = {
   openItems: "ai-admin:client:openItems",
   /** Server -> admin: () print and show the position (the /coords command). */
   coords: "ai-admin:client:coords",
+  /** Callback: () -> WorldState the weather and time now, for the quick menu (admins). */
+  worldState: "ai-admin:worldState",
+  /** Server -> warned player: (reason: string) an admin's warning, shown until confirmed. */
+  warned: "ai-admin:client:warned",
 } as const;
 
 /** What the quick menu asks the server to do; the commands run the same actions. */
@@ -38,6 +41,12 @@ export const MENU_ACTIONS = [
   "panel",
   "item",
   "inventory",
+  "warn",
+  "announce",
+  "weather",
+  "time",
+  "freeze",
+  "blackout",
 ] as const;
 export type MenuAction = (typeof MENU_ACTIONS)[number];
 export const isMenuAction = (v: unknown): v is MenuAction =>
@@ -97,20 +106,14 @@ export interface Settings {
   noclipFast: number;
   noclipFaster: number;
   noclipSlow: number;
-  announceKind: NotificationKind;
-  /** Seconds an announcement stays on screen. */
-  announceSeconds: number;
   /** The admin `/car`: every performance mod maxed, fuel, engine running. */
   carMaxed: boolean;
   carFuel: number;
   carEngineOn: boolean;
 }
 
-const KINDS: NotificationKind[] = ["info", "success", "warning", "error"];
-
 export function readSettings(raw: unknown): Settings {
   const s = record(raw);
-  const kind = KINDS.find((k) => k === s.announceKind) ?? "warning";
   return {
     noclipSpeed: num(s.noclipSpeed, 1, 0.1, 50),
     noclipMaxSpeed: num(s.noclipMaxSpeed, 16, 1, 100),
@@ -118,8 +121,6 @@ export function readSettings(raw: unknown): Settings {
     noclipFast: num(s.noclipFast, 2, 1, 20),
     noclipFaster: num(s.noclipFaster, 4, 1, 50),
     noclipSlow: num(s.noclipSlow, 0.05, 0.01, 1),
-    announceKind: kind,
-    announceSeconds: int(s.announceSeconds, 10, 2, 60),
     carMaxed: bool(s.carMaxed, false),
     carFuel: int(s.carFuel, 100, 0, 100),
     carEngineOn: bool(s.carEngineOn, true),

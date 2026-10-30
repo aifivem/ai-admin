@@ -3,6 +3,7 @@ import {
   isAdmin,
   isOnline,
   onClientCallback,
+  world,
 } from "@aicore-fivem/lib/server";
 import { ADMIN } from "@aicore-fivem/shared";
 import {
@@ -11,7 +12,9 @@ import {
   type MenuAction,
   type PlayerEntry,
 } from "common/admin";
+import type { WorldState } from "common/controls";
 import { actions, type Result } from "./actions";
+import { worldActions } from "./world";
 
 /** Whether the quick menu may open (it opens nothing for others; every action is checked again). */
 onClientCallback(EVENTS.access, (source) =>
@@ -39,6 +42,12 @@ onClientCallback(
   { guards: [isAdmin()], rate: { count: 2, windowMs: 1000 } },
 );
 
+onClientCallback(
+  EVENTS.worldState,
+  (): WorldState => ({ weather: world.getWeather(), time: world.getTime() }),
+  { guards: [isAdmin()], rate: { count: 2, windowMs: 1000 } },
+);
+
 const parseAction = ([action, target, value]: unknown[]):
   [MenuAction, number | null, string | null] | null => {
   if (!isMenuAction(action)) return null;
@@ -47,7 +56,7 @@ const parseAction = ([action, target, value]: unknown[]):
     !(typeof target === "number" && Number.isInteger(target) && target > 0)
   )
     return null;
-  if (value != null && !(typeof value === "string" && value.length <= 64))
+  if (value != null && !(typeof value === "string" && value.length <= 300))
     return null;
   return [action, target ?? null, value ?? null];
 };
@@ -83,6 +92,20 @@ function runAction(
     }
     case "inventory":
       return actions.openInventory(source, who);
+    case "warn":
+      return actions.warn(source, who, value ?? "");
+    case "announce":
+      return actions.announce(source, value ?? "");
+    case "weather":
+      return worldActions.weather(source, value ?? "");
+    case "time": {
+      const [hour = "", minute = "0"] = (value ?? "").split(":");
+      return worldActions.time(source, Number(hour), Number(minute));
+    }
+    case "freeze":
+      return worldActions.freeze(source, value === "1");
+    case "blackout":
+      return worldActions.blackout(source, value === "1");
     default: {
       const _exhaustive: never = action;
       return _exhaustive;
@@ -100,8 +123,7 @@ onClientCallback(
 );
 
 const parseItems = ([target, list]: unknown[]):
-  | [number | null, Array<{ name: string; count: number }>]
-  | null => {
+  [number | null, Array<{ name: string; count: number }>] | null => {
   if (
     target != null &&
     !(typeof target === "number" && Number.isInteger(target) && target > 0)

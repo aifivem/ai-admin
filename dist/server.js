@@ -52,6 +52,9 @@ function int(value, fallback, min = -Infinity, max = Infinity) {
 function bool(value, fallback) {
 	return typeof value == "boolean" ? value : fallback;
 }
+function str(value, fallback, max = 64) {
+	return typeof value == "string" && value.trim() ? value.trim().slice(0, max) : fallback;
+}
 function record(value) {
 	return typeof value == "object" && value && !Array.isArray(value) ? value : {};
 }
@@ -208,7 +211,7 @@ function loadLocaleTexts(resource = GetCurrentResourceName()) {
 // ../../../packages/lib/src/fivem/callbackNames.ts
 const requestEvent = (name) => `aicore:cb:${name}`, responseEvent = (resource) => `aicore:cbr:${resource}`;
 resourceExport(CORE.resource);
-const log$6 = createLogger(GetCurrentResourceName()), isAdmin = (ace = ADMIN.ace) => (source) => !!IsPlayerAceAllowed(String(source), ace) || `not allowed (${ace})`, gates = new Set();
+const log$7 = createLogger(GetCurrentResourceName()), isAdmin = (ace = ADMIN.ace) => (source) => !!IsPlayerAceAllowed(String(source), ace) || `not allowed (${ace})`, gates = new Set();
 on("playerDropped", () => {
 	let source = Number(globalThis.source);
 	for (let gate of gates) gate.release(source);
@@ -238,11 +241,11 @@ var ClientGate = class {
 		this.limit.release(source), this.lock?.release(source);
 	}
 	refuse(source, reason) {
-		log$6.warn(`${this.name} refused for ${GetPlayerName(String(source))} (${source}): ${reason}`);
+		log$7.warn(`${this.name} refused for ${GetPlayerName(String(source))} (${source}): ${reason}`);
 	}
 };
 // ../../../packages/lib/src/server/callback.ts
-const log$5 = createLogger(GetCurrentResourceName()), resource$1 = GetCurrentResourceName(), REFUSED = Symbol("refused");
+const log$6 = createLogger(GetCurrentResourceName()), resource$1 = GetCurrentResourceName(), REFUSED = Symbol("refused");
 function onClientCallback(name, first, second) {
 	let [handler, options] = typeof first == "function" ? [first, second ?? {}] : [second, first], gate = new ClientGate(name, options, 20);
 	onNet(requestEvent(name), async (caller, id, ...raw) => {
@@ -254,7 +257,7 @@ function onClientCallback(name, first, second) {
 			let result = await gate.run(source, REFUSED, () => handler(source, ...args));
 			result === REFUSED ? emitNet(responseEvent(caller), source, id, !1, null) : emitNet(responseEvent(caller), source, id, !0, result ?? null);
 		} catch (error) {
-			log$5.error(`callback ${name} failed for ${source}`, error), emitNet(responseEvent(caller), source, id, !1, null);
+			log$6.error(`callback ${name} failed for ${source}`, error), emitNet(responseEvent(caller), source, id, !1, null);
 		}
 	});
 }
@@ -314,7 +317,7 @@ function toPatch(value) {
 		default: return null;
 	}
 }
-const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$7 = resourceExport(CORE.resource), ERR = {
+const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$9 = resourceExport(CORE.resource), ERR = {
 	type: "ADMIN_ERR_TYPE",
 	range: "ADMIN_ERR_RANGE",
 	length: "ADMIN_ERR_LENGTH",
@@ -328,7 +331,7 @@ const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(va
 		if (cached && Date.now() - cached.at < 2e3) return cached.values.size > 0 ? cached.values : null;
 		let list = [];
 		try {
-			list = core$7.GetLookupValues(source);
+			list = core$9.GetLookupValues(source);
 		} catch {}
 		let values = new Set(Array.isArray(list) ? list.filter((v) => typeof v == "string") : []);
 		return this.lists.set(source, {
@@ -530,7 +533,7 @@ function writeSchema(resource, name, text, log) {
 	(0, node_fs_promises.mkdir)(dir, { recursive: !0 }).then(() => (0, node_fs_promises.writeFile)(`${dir}/${name}.schema.json`, text, "utf8")).catch((error) => log.error(`writing ${resource}/${path} failed`, error));
 }
 // ../../../packages/lib/src/server/admin/panel.ts
-const core$6 = resourceExport(CORE.resource), DEFAULT_KEY = "^[a-z0-9_]{2,32}$";
+const core$8 = resourceExport(CORE.resource), DEFAULT_KEY = "^[a-z0-9_]{2,32}$";
 function imported(spec, value) {
 	let base = clone(spec.newRecord ?? {}), out = {};
 	for (let name of Object.keys(spec.sections)) {
@@ -551,7 +554,7 @@ var AdminPanel = class {
 	constructor(schema) {
 		this.schema = schema;
 		for (let [name, spec] of Object.entries(schema.files)) this.load(name, spec);
-		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges)), setImmediate(() => core$6.RegisterAdminPanel(this.resource));
+		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges)), setImmediate(() => core$8.RegisterAdminPanel(this.resource));
 	}
 	get(file) {
 		return this.data.get(file) ?? {};
@@ -644,7 +647,7 @@ var AdminPanel = class {
 		let spec = this.schema.files[file], data = this.get(file), value = key === void 0 ? data : data[key] ?? null;
 		this.dataFiles.get(file)?.write(data);
 		for (let handler of this.handlers.get(file) ?? []) handler(key, value);
-		if (core$6.AdminPanelChanged({
+		if (core$8.AdminPanelChanged({
 			resource: this.resource,
 			file,
 			key,
@@ -682,19 +685,19 @@ function notify(source, text, kind = "info", duration) {
 	emitNet(CORE.clientNotifyEvent, source, notification);
 }
 // ../../../packages/lib/src/server/inventory.ts
-const core$5 = resourceExport(CORE.resource), inventory = {
-	addItem: (inv, item, count = 1, metadata, slot) => core$5.AddItem(inv, item, count, metadata, slot),
-	removeItem: (inv, item, count = 1, metadata, slot) => core$5.RemoveItem(inv, item, count, metadata, slot),
-	getItemCount: (inv, item, metadata) => core$5.GetItemCount(inv, item, metadata),
-	hasItem: (inv, item, count = 1) => core$5.HasItem(inv, item, count),
-	canCarryItem: (inv, item, count = 1, metadata) => core$5.CanCarryItem(inv, item, count, metadata),
-	getItems: (inv) => core$5.GetItems(inv),
-	clearInventory: (inv) => core$5.ClearInventory(inv),
-	registerStash: (name, label, slots, maxWeight, jobs = []) => core$5.RegisterStash(name, label, slots, maxWeight, jobs),
-	openInventory: (source, inv) => core$5.OpenInventory(source, inv),
-	registerUsableItem: (name, handler) => core$5.RegisterUsableItem(name, handler),
-	getItemDefinition: (name) => core$5.GetItemDefinition(name)
-}, core$4 = resourceExport(CORE.resource);
+const core$7 = resourceExport(CORE.resource), inventory = {
+	addItem: (inv, item, count = 1, metadata, slot) => core$7.AddItem(inv, item, count, metadata, slot),
+	removeItem: (inv, item, count = 1, metadata, slot) => core$7.RemoveItem(inv, item, count, metadata, slot),
+	getItemCount: (inv, item, metadata) => core$7.GetItemCount(inv, item, metadata),
+	hasItem: (inv, item, count = 1) => core$7.HasItem(inv, item, count),
+	canCarryItem: (inv, item, count = 1, metadata) => core$7.CanCarryItem(inv, item, count, metadata),
+	getItems: (inv) => core$7.GetItems(inv),
+	clearInventory: (inv) => core$7.ClearInventory(inv),
+	registerStash: (name, label, slots, maxWeight, jobs = []) => core$7.RegisterStash(name, label, slots, maxWeight, jobs),
+	openInventory: (source, inv) => core$7.OpenInventory(source, inv),
+	registerUsableItem: (name, handler) => core$7.RegisterUsableItem(name, handler),
+	getItemDefinition: (name) => core$7.GetItemDefinition(name)
+}, core$6 = resourceExport(CORE.resource);
 var OnlinePlayers = class {
 	players = new Map();
 	onDuty = new Map();
@@ -703,7 +706,7 @@ var OnlinePlayers = class {
 		if (this.started) return;
 		this.started = !0;
 		let load = (source, character) => {
-			this.put(source, character, (core$4.GetJobs(source) ?? []).map((m) => m.job), (core$4.GetGangs(source) ?? []).map((m) => m.gang)), this.setDuty(source, core$4.GetDutyJob(source));
+			this.put(source, character, (core$6.GetJobs(source) ?? []).map((m) => m.job), (core$6.GetGangs(source) ?? []).map((m) => m.gang)), this.setDuty(source, core$6.GetDutyJob(source));
 		};
 		on(CORE.playerLoadedEvent, load), on(CORE.playerUnloadedEvent, (source) => this.drop(source)), on(CORE.jobsChangedEvent, (source, jobs) => {
 			let player = this.players.get(source);
@@ -712,8 +715,8 @@ var OnlinePlayers = class {
 			let player = this.players.get(source);
 			player && (player.gangs = gangs.map((m) => m.gang));
 		}), on(CORE.dutyChangedEvent, (source, job) => this.setDuty(source, job));
-		for (let source of core$4.GetLoadedSources()) {
-			let character = core$4.GetCharacter(source);
+		for (let source of core$6.GetLoadedSources()) {
+			let character = core$6.GetCharacter(source);
 			character && load(source, character);
 		}
 	}
@@ -759,10 +762,10 @@ var OnlinePlayers = class {
 const EMPTY = new Set();
 new OnlinePlayers();
 // ../../../packages/lib/src/server/vehicleKeys.ts
-const core$3 = resourceExport(CORE.resource), vehicleKeys = {
-	give: (source, vehicle, purpose = "temporary") => core$3.GiveVehicleKeys(source, vehicle, purpose),
-	remove: (source, vehicle) => core$3.RemoveVehicleKeys(source, vehicle),
-	has: (source, vehicle) => core$3.HasVehicleKeys(source, vehicle)
+const core$5 = resourceExport(CORE.resource), vehicleKeys = {
+	give: (source, vehicle, purpose = "temporary") => core$5.GiveVehicleKeys(source, vehicle, purpose),
+	remove: (source, vehicle) => core$5.RemoveVehicleKeys(source, vehicle),
+	has: (source, vehicle) => core$5.HasVehicleKeys(source, vehicle)
 }, TYPES = new Set([
 	"automobile",
 	"bike",
@@ -824,11 +827,11 @@ function nearestVehicleTo(source, metres) {
 }
 resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/command.ts
-const resource = GetCurrentResourceName(), log$4 = createLogger(resource);
+const resource = GetCurrentResourceName(), log$5 = createLogger(resource);
 let texts = null;
 const t = (key, ...args) => formatText((texts ??= loadLocaleTexts(CORE.resource))[key] ?? key, args);
 function reply$1(source, text, kind) {
-	source > 0 ? notify(source, text, kind) : log$4.info(text);
+	source > 0 ? notify(source, text, kind) : log$5.info(text);
 }
 var Command = class {
 	params;
@@ -863,7 +866,7 @@ var Command = class {
 		if (!this.allowed(source, name)) return reply$1(source, t("COMMAND_NOT_ALLOWED"), "error");
 		let args = this.parse(raw);
 		if (typeof args == "string") return reply$1(source, args, "error"), reply$1(source, t("COMMAND_USAGE", this.usage), "info");
-		let fail = (error) => log$4.error(`command /${name} failed`, error);
+		let fail = (error) => log$5.error(`command /${name} failed`, error);
 		try {
 			let result = this.handler(source, args, line);
 			result instanceof Promise && result.catch(fail);
@@ -984,15 +987,15 @@ var Mirror = class {
 	}
 };
 // ../../../packages/lib/src/server/world.ts
-const core$1 = resourceExport(CORE.resource), world = {
-	getWeather: () => core$1.GetWeather(),
-	setWeather: (type) => core$1.SetWeather(type),
-	getTime: () => core$1.GetTime(),
-	setTime: (hour, minute = 0) => core$1.SetTime(hour, minute),
-	setBlackout: (on) => core$1.SetBlackout(on),
-	freezeTime: (on) => core$1.FreezeTime(on)
+const core$3 = resourceExport(CORE.resource), world = {
+	getWeather: () => core$3.GetWeather(),
+	setWeather: (type) => core$3.SetWeather(type),
+	getTime: () => core$3.GetTime(),
+	setTime: (hour, minute = 0) => core$3.SetTime(hour, minute),
+	setBlackout: (on) => core$3.SetBlackout(on),
+	freezeTime: (on) => core$3.FreezeTime(on)
 };
-resourceExport(CORE.resource);
+resourceExport(CORE.resource), resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/index.ts
 function isOnline(source) {
 	return !!GetPlayerName(String(source));
@@ -1011,7 +1014,9 @@ const EVENTS = {
 	teleport: "ai-admin:client:teleport",
 	openMenu: "ai-admin:client:openMenu",
 	openItems: "ai-admin:client:openItems",
-	coords: "ai-admin:client:coords"
+	coords: "ai-admin:client:coords",
+	worldState: "ai-admin:worldState",
+	warned: "ai-admin:client:warned"
 }, MENU_ACTIONS = [
 	"tpm",
 	"heal",
@@ -1022,15 +1027,16 @@ const EVENTS = {
 	"bring",
 	"panel",
 	"item",
-	"inventory"
-], isMenuAction = (v) => typeof v == "string" && MENU_ACTIONS.includes(v), KINDS = [
-	"info",
-	"success",
-	"warning",
-	"error"
-];
+	"inventory",
+	"warn",
+	"announce",
+	"weather",
+	"time",
+	"freeze",
+	"blackout"
+], isMenuAction = (v) => typeof v == "string" && MENU_ACTIONS.includes(v);
 function readSettings(raw) {
-	let s = record(raw), kind = KINDS.find((k) => k === s.announceKind) ?? "warning";
+	let s = record(raw);
 	return {
 		noclipSpeed: num(s.noclipSpeed, 1, .1, 50),
 		noclipMaxSpeed: num(s.noclipMaxSpeed, 16, 1, 100),
@@ -1038,230 +1044,447 @@ function readSettings(raw) {
 		noclipFast: num(s.noclipFast, 2, 1, 20),
 		noclipFaster: num(s.noclipFaster, 4, 1, 50),
 		noclipSlow: num(s.noclipSlow, .05, .01, 1),
-		announceKind: kind,
-		announceSeconds: int(s.announceSeconds, 10, 2, 60),
 		carMaxed: bool(s.carMaxed, !1),
 		carFuel: int(s.carFuel, 100, 0, 100),
 		carEngineOn: bool(s.carEngineOn, !0)
 	};
 }
-// resource/server/content.ts
-const panel = new AdminPanel({
-	title: "ADMIN_TITLE",
-	icon: "user",
-	files: { settings: {
-		kind: "settings",
-		sync: "all",
-		sections: {
-			noclipSpeed: {
-				type: "number",
-				min: .1,
-				max: 50
+// resource/common/controls.ts
+const WEATHERS = [
+	"EXTRASUNNY",
+	"CLEAR",
+	"NEUTRAL",
+	"SMOG",
+	"FOGGY",
+	"OVERCAST",
+	"CLOUDS",
+	"CLEARING",
+	"RAIN",
+	"THUNDER",
+	"SNOW",
+	"BLIZZARD",
+	"SNOWLIGHT",
+	"XMAS",
+	"HALLOWEEN"
+], isWeather = (v) => typeof v == "string" && WEATHERS.includes(v), NOTIFY_KINDS = [
+	"info",
+	"success",
+	"warning",
+	"error"
+];
+function readControls(raw) {
+	let c = record(raw);
+	return {
+		announceText: str(c.announceText, "", 300),
+		announceKind: NOTIFY_KINDS.find((k) => k === c.announceKind) ?? "warning",
+		announceSeconds: int(c.announceSeconds, 10, 2, 60),
+		announceSend: bool(c.announceSend, !1),
+		warnPlayer: str(c.warnPlayer, "", 64),
+		warnReason: str(c.warnReason, "", 300),
+		warnSend: bool(c.warnSend, !1),
+		weather: isWeather(c.weather) ? c.weather : "",
+		hour: int(c.hour, 12, 0, 23),
+		minute: int(c.minute, 0, 0, 59),
+		freezeTime: bool(c.freezeTime, !1),
+		blackout: bool(c.blackout, !1)
+	};
+}
+// resource/server/panel.ts
+var Panel = class extends AdminPanel {
+	editor = 0;
+	apply(admin, raw) {
+		this.editor = admin;
+		try {
+			return super.apply(admin, raw);
+		} finally {
+			this.editor = 0;
+		}
+	}
+};
+// resource/server/schemaControls.ts
+const CONTROLS_FILE = {
+	kind: "settings",
+	sync: "admin",
+	sections: {
+		announceText: {
+			type: "text",
+			min: 0,
+			max: 300
+		},
+		announceKind: {
+			type: "enum",
+			values: NOTIFY_KINDS
+		},
+		announceSeconds: {
+			type: "number",
+			min: 2,
+			max: 60,
+			integer: !0
+		},
+		announceSend: { type: "bool" },
+		warnPlayer: {
+			type: "text",
+			min: 0,
+			max: 64,
+			lookup: "player"
+		},
+		warnReason: {
+			type: "text",
+			min: 0,
+			max: 300
+		},
+		warnSend: { type: "bool" },
+		weather: {
+			type: "enum",
+			values: ["", ...WEATHERS]
+		},
+		hour: {
+			type: "number",
+			min: 0,
+			max: 23,
+			integer: !0
+		},
+		minute: {
+			type: "number",
+			min: 0,
+			max: 59,
+			integer: !0
+		},
+		freezeTime: { type: "bool" },
+		blackout: { type: "bool" }
+	},
+	defaults: {
+		announceText: "",
+		announceKind: "warning",
+		announceSeconds: 10,
+		announceSend: !1,
+		warnPlayer: "",
+		warnReason: "",
+		warnSend: !1,
+		weather: "",
+		hour: 12,
+		minute: 0,
+		freezeTime: !1,
+		blackout: !1
+	}
+}, CONTROLS_TABS = [{
+	id: "messages",
+	file: "controls",
+	icon: "comments",
+	label: "ADMIN_TAB_MESSAGES",
+	desc: "ADMIN_TAB_MESSAGES_DESC",
+	cards: [{
+		icon: "comments",
+		title: "ADMIN_C_ANNOUNCE",
+		desc: "ADMIN_C_ANNOUNCE_DESC",
+		fields: [
+			{
+				widget: "text",
+				path: "announceText",
+				label: "ADMIN_F_ANNOUNCE_TEXT",
+				hint: "ADMIN_H_ANNOUNCE_TEXT",
+				placeholder: "ADMIN_P_ANNOUNCE_TEXT"
 			},
-			noclipMaxSpeed: {
-				type: "number",
-				min: 1,
-				max: 100
-			},
-			noclipStep: {
-				type: "number",
-				min: .1,
-				max: 10
-			},
-			noclipFast: {
-				type: "number",
-				min: 1,
-				max: 20
-			},
-			noclipFaster: {
-				type: "number",
-				min: 1,
-				max: 50
-			},
-			noclipSlow: {
-				type: "number",
-				min: .01,
-				max: 1
-			},
-			announceKind: {
-				type: "enum",
-				values: [
-					"info",
-					"success",
-					"warning",
-					"error"
+			{
+				widget: "select",
+				path: "announceKind",
+				label: "ADMIN_F_ANNOUNCE_KIND",
+				hint: "ADMIN_H_ANNOUNCE_KIND",
+				options: [
+					{
+						value: "info",
+						label: "ADMIN_O_INFO"
+					},
+					{
+						value: "success",
+						label: "ADMIN_O_SUCCESS"
+					},
+					{
+						value: "warning",
+						label: "ADMIN_O_WARNING"
+					},
+					{
+						value: "error",
+						label: "ADMIN_O_ERROR"
+					}
 				]
 			},
-			announceSeconds: {
-				type: "number",
+			{
+				widget: "number",
+				path: "announceSeconds",
+				label: "ADMIN_F_ANNOUNCE_TIME",
+				hint: "ADMIN_H_ANNOUNCE_TIME",
 				min: 2,
 				max: 60,
-				integer: !0
+				step: 1,
+				unit: "s"
 			},
-			carMaxed: { type: "bool" },
-			carFuel: {
-				type: "number",
+			{
+				widget: "switch",
+				path: "announceSend",
+				label: "ADMIN_F_ANNOUNCE_SEND",
+				hint: "ADMIN_H_ANNOUNCE_SEND"
+			}
+		]
+	}, {
+		icon: "triangle-exclamation",
+		title: "ADMIN_C_WARN",
+		desc: "ADMIN_C_WARN_DESC",
+		fields: [
+			{
+				widget: "text",
+				path: "warnPlayer",
+				lookup: "player",
+				label: "ADMIN_F_WARN_PLAYER",
+				hint: "ADMIN_H_WARN_PLAYER",
+				placeholder: "ADMIN_P_WARN_PLAYER"
+			},
+			{
+				widget: "text",
+				path: "warnReason",
+				label: "ADMIN_F_WARN_REASON",
+				hint: "ADMIN_H_WARN_REASON",
+				placeholder: "ADMIN_P_WARN_REASON"
+			},
+			{
+				widget: "switch",
+				path: "warnSend",
+				label: "ADMIN_F_WARN_SEND",
+				hint: "ADMIN_H_WARN_SEND"
+			}
+		]
+	}]
+}, {
+	id: "world",
+	file: "controls",
+	icon: "snowflake",
+	label: "ADMIN_TAB_WORLD",
+	desc: "ADMIN_TAB_WORLD_DESC",
+	cards: [{
+		icon: "snowflake",
+		title: "ADMIN_C_WEATHER",
+		desc: "ADMIN_C_WEATHER_DESC",
+		fields: [{
+			widget: "select",
+			path: "weather",
+			label: "ADMIN_F_WEATHER",
+			hint: "ADMIN_H_WEATHER",
+			options: [{
+				value: "",
+				label: "ADMIN_O_WEATHER_NONE"
+			}, ...WEATHERS.map((w) => ({
+				value: w,
+				label: `WEATHER_${w}`
+			}))]
+		}, {
+			widget: "switch",
+			path: "blackout",
+			label: "ADMIN_F_BLACKOUT",
+			hint: "ADMIN_H_BLACKOUT"
+		}]
+	}, {
+		icon: "gauge",
+		title: "ADMIN_C_TIME",
+		desc: "ADMIN_C_TIME_DESC",
+		fields: [
+			{
+				widget: "number",
+				path: "hour",
+				label: "ADMIN_F_HOUR",
+				hint: "ADMIN_H_HOUR",
 				min: 0,
-				max: 100,
-				integer: !0
+				max: 23,
+				step: 1,
+				unit: "h"
 			},
-			carEngineOn: { type: "bool" }
+			{
+				widget: "number",
+				path: "minute",
+				label: "ADMIN_F_MINUTE",
+				min: 0,
+				max: 59,
+				step: 5,
+				unit: "min"
+			},
+			{
+				widget: "switch",
+				path: "freezeTime",
+				label: "ADMIN_F_FREEZE",
+				hint: "ADMIN_H_FREEZE"
+			}
+		]
+	}]
+}], panel = new Panel({
+	title: "ADMIN_TITLE",
+	icon: "user",
+	files: {
+		settings: {
+			kind: "settings",
+			sync: "all",
+			sections: {
+				noclipSpeed: {
+					type: "number",
+					min: .1,
+					max: 50
+				},
+				noclipMaxSpeed: {
+					type: "number",
+					min: 1,
+					max: 100
+				},
+				noclipStep: {
+					type: "number",
+					min: .1,
+					max: 10
+				},
+				noclipFast: {
+					type: "number",
+					min: 1,
+					max: 20
+				},
+				noclipFaster: {
+					type: "number",
+					min: 1,
+					max: 50
+				},
+				noclipSlow: {
+					type: "number",
+					min: .01,
+					max: 1
+				},
+				carMaxed: { type: "bool" },
+				carFuel: {
+					type: "number",
+					min: 0,
+					max: 100,
+					integer: !0
+				},
+				carEngineOn: { type: "bool" }
+			},
+			defaults: {
+				noclipSpeed: 1,
+				noclipMaxSpeed: 16,
+				noclipStep: .5,
+				noclipFast: 2,
+				noclipFaster: 4,
+				noclipSlow: .05,
+				carMaxed: !1,
+				carFuel: 100,
+				carEngineOn: !0
+			}
 		},
-		defaults: {
-			noclipSpeed: 1,
-			noclipMaxSpeed: 16,
-			noclipStep: .5,
-			noclipFast: 2,
-			noclipFaster: 4,
-			noclipSlow: .05,
-			announceKind: "warning",
-			announceSeconds: 10,
-			carMaxed: !1,
-			carFuel: 100,
-			carEngineOn: !0
-		}
-	} },
+		controls: CONTROLS_FILE
+	},
 	tabs: [{
 		id: "settings",
 		file: "settings",
 		icon: "sliders",
 		label: "ADMIN_TAB_SETTINGS",
 		desc: "ADMIN_TAB_SETTINGS_DESC",
-		cards: [
-			{
-				icon: "gauge",
-				title: "ADMIN_C_NOCLIP",
-				desc: "ADMIN_C_NOCLIP_DESC",
-				fields: [
-					{
-						widget: "number",
-						path: "noclipSpeed",
-						label: "ADMIN_F_NOCLIP_SPEED",
-						hint: "ADMIN_H_NOCLIP_SPEED",
-						min: .1,
-						max: 50,
-						step: .5
-					},
-					{
-						widget: "number",
-						path: "noclipMaxSpeed",
-						label: "ADMIN_F_NOCLIP_MAX",
-						hint: "ADMIN_H_NOCLIP_MAX",
-						min: 1,
-						max: 100,
-						step: 1
-					},
-					{
-						widget: "number",
-						path: "noclipStep",
-						label: "ADMIN_F_NOCLIP_STEP",
-						hint: "ADMIN_H_NOCLIP_STEP",
-						min: .1,
-						max: 10,
-						step: .1
-					},
-					{
-						widget: "number",
-						path: "noclipFast",
-						label: "ADMIN_F_NOCLIP_FAST",
-						hint: "ADMIN_H_NOCLIP_FAST",
-						min: 1,
-						max: 20,
-						step: .5,
-						unit: "x"
-					},
-					{
-						widget: "number",
-						path: "noclipFaster",
-						label: "ADMIN_F_NOCLIP_FASTER",
-						hint: "ADMIN_H_NOCLIP_FASTER",
-						min: 1,
-						max: 50,
-						step: .5,
-						unit: "x"
-					},
-					{
-						widget: "number",
-						path: "noclipSlow",
-						label: "ADMIN_F_NOCLIP_SLOW",
-						hint: "ADMIN_H_NOCLIP_SLOW",
-						min: .01,
-						max: 1,
-						step: .01,
-						unit: "x"
-					}
-				]
-			},
-			{
-				icon: "comments",
-				title: "ADMIN_C_ANNOUNCE",
-				desc: "ADMIN_C_ANNOUNCE_DESC",
-				fields: [{
-					widget: "select",
-					path: "announceKind",
-					label: "ADMIN_F_ANNOUNCE_KIND",
-					hint: "ADMIN_H_ANNOUNCE_KIND",
-					options: [
-						{
-							value: "info",
-							label: "ADMIN_O_INFO"
-						},
-						{
-							value: "success",
-							label: "ADMIN_O_SUCCESS"
-						},
-						{
-							value: "warning",
-							label: "ADMIN_O_WARNING"
-						},
-						{
-							value: "error",
-							label: "ADMIN_O_ERROR"
-						}
-					]
-				}, {
+		cards: [{
+			icon: "gauge",
+			title: "ADMIN_C_NOCLIP",
+			desc: "ADMIN_C_NOCLIP_DESC",
+			fields: [
+				{
 					widget: "number",
-					path: "announceSeconds",
-					label: "ADMIN_F_ANNOUNCE_TIME",
-					hint: "ADMIN_H_ANNOUNCE_TIME",
-					min: 2,
-					max: 60,
-					step: 1,
-					unit: "s"
-				}]
-			},
-			{
-				icon: "car",
-				title: "ADMIN_C_CAR",
-				desc: "ADMIN_C_CAR_DESC",
-				fields: [
-					{
-						widget: "switch",
-						path: "carMaxed",
-						label: "ADMIN_F_CAR_MAXED",
-						hint: "ADMIN_H_CAR_MAXED"
-					},
-					{
-						widget: "number",
-						path: "carFuel",
-						label: "ADMIN_F_CAR_FUEL",
-						min: 0,
-						max: 100,
-						step: 5,
-						unit: "%"
-					},
-					{
-						widget: "switch",
-						path: "carEngineOn",
-						label: "ADMIN_F_CAR_ENGINE",
-						hint: "ADMIN_H_CAR_ENGINE"
-					}
-				]
-			}
-		]
-	}]
-}), content = { settings: readSettings(panel.get("settings")) };
-panel.onChange("settings", () => content.settings = readSettings(panel.get("settings")));
+					path: "noclipSpeed",
+					label: "ADMIN_F_NOCLIP_SPEED",
+					hint: "ADMIN_H_NOCLIP_SPEED",
+					min: .1,
+					max: 50,
+					step: .5
+				},
+				{
+					widget: "number",
+					path: "noclipMaxSpeed",
+					label: "ADMIN_F_NOCLIP_MAX",
+					hint: "ADMIN_H_NOCLIP_MAX",
+					min: 1,
+					max: 100,
+					step: 1
+				},
+				{
+					widget: "number",
+					path: "noclipStep",
+					label: "ADMIN_F_NOCLIP_STEP",
+					hint: "ADMIN_H_NOCLIP_STEP",
+					min: .1,
+					max: 10,
+					step: .1
+				},
+				{
+					widget: "number",
+					path: "noclipFast",
+					label: "ADMIN_F_NOCLIP_FAST",
+					hint: "ADMIN_H_NOCLIP_FAST",
+					min: 1,
+					max: 20,
+					step: .5,
+					unit: "x"
+				},
+				{
+					widget: "number",
+					path: "noclipFaster",
+					label: "ADMIN_F_NOCLIP_FASTER",
+					hint: "ADMIN_H_NOCLIP_FASTER",
+					min: 1,
+					max: 50,
+					step: .5,
+					unit: "x"
+				},
+				{
+					widget: "number",
+					path: "noclipSlow",
+					label: "ADMIN_F_NOCLIP_SLOW",
+					hint: "ADMIN_H_NOCLIP_SLOW",
+					min: .01,
+					max: 1,
+					step: .01,
+					unit: "x"
+				}
+			]
+		}, {
+			icon: "car",
+			title: "ADMIN_C_CAR",
+			desc: "ADMIN_C_CAR_DESC",
+			fields: [
+				{
+					widget: "switch",
+					path: "carMaxed",
+					label: "ADMIN_F_CAR_MAXED",
+					hint: "ADMIN_H_CAR_MAXED"
+				},
+				{
+					widget: "number",
+					path: "carFuel",
+					label: "ADMIN_F_CAR_FUEL",
+					min: 0,
+					max: 100,
+					step: 5,
+					unit: "%"
+				},
+				{
+					widget: "switch",
+					path: "carEngineOn",
+					label: "ADMIN_F_CAR_ENGINE",
+					hint: "ADMIN_H_CAR_ENGINE"
+				}
+			]
+		}]
+	}, ...CONTROLS_TABS]
+}), content = {
+	settings: readSettings(panel.get("settings")),
+	controls: readControls(panel.get("controls"))
+};
+panel.onChange("settings", () => content.settings = readSettings(panel.get("settings"))), panel.onChange("controls", () => content.controls = readControls(panel.get("controls")));
+function commitControls(change) {
+	let current = panel.get("controls");
+	Object.entries(change).every(([k, v]) => current[k] === v) || panel.commit("controls", void 0, {
+		...current,
+		...change
+	});
+}
 // resource/server/actions.ts
 const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) => GetPlayerPed(String(source)), pos = (source) => {
 	let [x = 0, y = 0, z = 0] = GetEntityCoords(ped(source));
@@ -1270,7 +1493,7 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		y,
 		z
 	};
-}, name = (source) => GetPlayerName(String(source)) || String(source), targetName = (target) => `${name(target)} (${target})`, log$1 = (message, source, target, metadata) => aiLog("actions", message, {
+}, name = (source) => GetPlayerName(String(source)) || String(source), targetName = (target) => `${name(target)} (${target})`, log$2 = (message, source, target, metadata) => aiLog("actions", message, {
 	source: source > 0 ? source : void 0,
 	target,
 	metadata
@@ -1279,28 +1502,28 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		return emitNet(EVENTS.toggleNoclip, source), null;
 	},
 	tpm(source) {
-		return emitNet(EVENTS.teleport, source, null), log$1("teleported to the waypoint", source), null;
+		return emitNet(EVENTS.teleport, source, null), log$2("teleported to the waypoint", source), null;
 	},
 	tp(source, point) {
-		return emitNet(EVENTS.teleport, source, point), log$1("teleported to coordinates", source, void 0, { ...point }), null;
+		return emitNet(EVENTS.teleport, source, point), log$2("teleported to coordinates", source, void 0, { ...point }), null;
 	},
 	goto(source, target) {
 		if (target === source || !isOnline(target)) return "ERR_TARGET";
 		let point = pos(target);
-		return emitNet(EVENTS.teleport, source, point), log$1("went to a player", source, target, point), null;
+		return emitNet(EVENTS.teleport, source, point), log$2("went to a player", source, target, point), null;
 	},
 	bring(source, target) {
 		if (target === source || !isOnline(target)) return "ERR_TARGET";
 		let point = pos(source);
-		return emitNet(EVENTS.teleport, target, point), notify(target, Locale("NOTIFY_BROUGHT"), "info"), log$1("brought a player", source, target, point), null;
+		return emitNet(EVENTS.teleport, target, point), notify(target, Locale("NOTIFY_BROUGHT"), "info"), log$2("brought a player", source, target, point), null;
 	},
 	heal(source, target) {
 		let death = optionalExport("ai-death");
-		return death ? isOnline(target) ? death.IsDead(target) === !0 ? "ERR_DOWN" : (death.Heal(target), target !== source && notify(target, Locale("NOTIFY_HEALED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_HEALED", name(target)), "success"), log$1("healed a player", source, target), null) : "ERR_TARGET" : "ERR_NO_DEATH";
+		return death ? isOnline(target) ? death.IsDead(target) === !0 ? "ERR_DOWN" : (death.Heal(target), target !== source && notify(target, Locale("NOTIFY_HEALED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_HEALED", name(target)), "success"), log$2("healed a player", source, target), null) : "ERR_TARGET" : "ERR_NO_DEATH";
 	},
 	revive(source, target) {
 		let death = optionalExport("ai-death");
-		return death ? isOnline(target) ? (death.Revive(target) !== !0 && death.Heal(target), target !== source && notify(target, Locale("NOTIFY_REVIVED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_REVIVED", name(target)), "success"), log$1("revived a player", source, target), null) : "ERR_TARGET" : "ERR_NO_DEATH";
+		return death ? isOnline(target) ? (death.Revive(target) !== !0 && death.Heal(target), target !== source && notify(target, Locale("NOTIFY_REVIVED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_REVIVED", name(target)), "success"), log$2("revived a player", source, target), null) : "ERR_TARGET" : "ERR_NO_DEATH";
 	},
 	async car(source, model) {
 		let hashName = model.toLowerCase();
@@ -1327,7 +1550,7 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 			keysTo: source,
 			purpose: "temporary",
 			persistent: !1
-		}) === null ? "ERR_VEHICLE" : (notify(source, Locale("NOTIFY_CAR_SPAWNED", hashName), "success"), log$1("spawned a vehicle", source, void 0, {
+		}) === null ? "ERR_VEHICLE" : (notify(source, Locale("NOTIFY_CAR_SPAWNED", hashName), "success"), log$2("spawned a vehicle", source, void 0, {
 			model: hashName,
 			...p
 		}), null);
@@ -1340,7 +1563,7 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 			plate: GetVehicleNumberPlateText(vehicle),
 			...pos(source)
 		};
-		return DeleteEntity(vehicle), notify(source, Locale("NOTIFY_DV_DONE"), "success"), log$1("deleted a vehicle", source, void 0, metadata), null;
+		return DeleteEntity(vehicle), notify(source, Locale("NOTIFY_DV_DONE"), "success"), log$2("deleted a vehicle", source, void 0, metadata), null;
 	},
 	coords(source) {
 		return emitNet(EVENTS.coords, source), null;
@@ -1349,12 +1572,18 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		return emitNet(ADMIN.showEvent, source), null;
 	},
 	announce(source, text) {
-		let { announceKind, announceSeconds } = content.settings;
-		return notify(-1, Locale("NOTIFY_ANNOUNCE", text), announceKind, announceSeconds * 1e3), log$1("announced", source, void 0, { text }), null;
+		let message = text.trim().slice(0, 300);
+		if (!message) return "ERR_MESSAGE_EMPTY";
+		let { announceKind, announceSeconds } = content.controls;
+		return notify(-1, Locale("NOTIFY_ANNOUNCE", message), announceKind, announceSeconds * 1e3), log$2("announced", source, void 0, { text: message }), null;
+	},
+	warn(source, target, reason) {
+		let text = reason.trim().slice(0, 300);
+		return text ? target === source || !isOnline(target) ? "ERR_TARGET" : (emitNet(EVENTS.warned, target, text), source > 0 && notify(source, Locale("NOTIFY_WARNED", targetName(target)), "success"), log$2("warned a player", source, target, { reason: text }), null) : "ERR_REASON_EMPTY";
 	},
 	giveItem(source, target, item, count) {
 		let name = item.toLowerCase();
-		return !/^[a-z0-9_-]{1,48}$/.test(name) || !inventory.getItemDefinition(name) ? "ERR_ITEM" : !Number.isInteger(count) || count < 1 || count > 1e4 ? "ERR_COUNT" : inventory.addItem(target, name, count) ? (notify(source, Locale("NOTIFY_ITEM_GIVEN", count, name, targetName(target)), "success"), log$1("gave an item", source, target, {
+		return !/^[a-z0-9_-]{1,48}$/.test(name) || !inventory.getItemDefinition(name) ? "ERR_ITEM" : !Number.isInteger(count) || count < 1 || count > 1e4 ? "ERR_COUNT" : inventory.addItem(target, name, count) ? (notify(source, Locale("NOTIFY_ITEM_GIVEN", count, name, targetName(target)), "success"), log$2("gave an item", source, target, {
 			item: name,
 			count
 		}), null) : "ERR_ITEM_FULL";
@@ -1363,13 +1592,13 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		let name = item.toLowerCase(), has = inventory.getItemCount(target, name);
 		if (has <= 0) return "ERR_ITEM_NONE";
 		let take = count > 0 ? Math.min(count, has) : has;
-		return inventory.removeItem(target, name, take) ? (notify(source, Locale("NOTIFY_ITEM_REMOVED", take, name, targetName(target)), "success"), log$1("removed an item", source, target, {
+		return inventory.removeItem(target, name, take) ? (notify(source, Locale("NOTIFY_ITEM_REMOVED", take, name, targetName(target)), "success"), log$2("removed an item", source, target, {
 			item: name,
 			count: take
 		}), null) : "ERR_ITEM_NONE";
 	},
 	clearInventory(source, target) {
-		return inventory.clearInventory(target), notify(source, Locale("NOTIFY_INVENTORY_CLEARED", targetName(target)), "success"), log$1("cleared an inventory", source, target), null;
+		return inventory.clearInventory(target), notify(source, Locale("NOTIFY_INVENTORY_CLEARED", targetName(target)), "success"), log$2("cleared an inventory", source, target), null;
 	},
 	giveKeys(source, target) {
 		if (source <= 0) return "ERR_PLAYER_ONLY";
@@ -1377,10 +1606,34 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		if (!vehicle) return "ERR_NO_VEHICLE";
 		vehicleKeys.give(target, vehicle, "temporary");
 		let plate = GetVehicleNumberPlateText(vehicle).trim();
-		return notify(source, Locale("NOTIFY_KEYS_GIVEN", plate, targetName(target)), "success"), log$1("gave vehicle keys", source, target, { plate }), null;
+		return notify(source, Locale("NOTIFY_KEYS_GIVEN", plate, targetName(target)), "success"), log$2("gave vehicle keys", source, target, { plate }), null;
 	},
 	openInventory(source, target) {
-		return source <= 0 ? "ERR_PLAYER_ONLY" : inventory.openInventory(source, target) ? (log$1("opened an inventory", source, target), null) : "ERR_INVENTORY";
+		return source <= 0 ? "ERR_PLAYER_ONLY" : inventory.openInventory(source, target) ? (log$2("opened an inventory", source, target), null) : "ERR_INVENTORY";
+	}
+}, log$1 = createLogger(ResourceName);
+function done(source, ok, text, change) {
+	return ok ? (source > 0 ? notify(source, text, "success") : log$1.info(text), commitControls(change), aiLog("actions", "changed the world", {
+		source: source > 0 ? source : void 0,
+		metadata: change
+	}), null) : "ERR_NO_WEATHER";
+}
+const worldActions = {
+	weather(source, type) {
+		let weather = type.toUpperCase();
+		return done(source, world.setWeather(weather), Locale("NOTIFY_WEATHER", weather), { weather: isWeather(weather) ? weather : "" });
+	},
+	time(source, hour, minute) {
+		return !Number.isInteger(hour) || hour < 0 || hour > 23 || !Number.isInteger(minute) || minute < 0 || minute > 59 ? "ERR_TIME" : done(source, world.setTime(hour, minute), Locale("NOTIFY_TIME", hour, String(minute).padStart(2, "0")), {
+			hour,
+			minute
+		});
+	},
+	freeze(source, on) {
+		return done(source, world.freezeTime(on), Locale(on ? "NOTIFY_FREEZE_ON" : "NOTIFY_FREEZE_OFF"), { freezeTime: on });
+	},
+	blackout(source, on) {
+		return done(source, world.setBlackout(on), Locale(on ? "NOTIFY_BLACKOUT_ON" : "NOTIFY_BLACKOUT_OFF"), { blackout: on });
 	}
 }, log = createLogger(ResourceName);
 function reply(source, error) {
@@ -1476,12 +1729,7 @@ addCommand("noclip", {
 		type: "longString",
 		help: Locale("COMMAND_P_MESSAGE")
 	}]
-}, (source, args) => answer(source, actions.announce(source, args.message.slice(0, 300))));
-const done = (source, ok, text) => {
-	if (!ok) return reply(source, "ERR_NO_WEATHER");
-	source > 0 ? notify(source, text, "success") : log.info(text);
-};
-addCommand("weather", {
+}, (source, args) => answer(source, actions.announce(source, args.message))), addCommand("weather", {
 	help: Locale("COMMAND_WEATHER"),
 	params: [{
 		name: "type",
@@ -1489,7 +1737,7 @@ addCommand("weather", {
 		help: Locale("COMMAND_P_WEATHER")
 	}],
 	restricted: !0
-}, (source, args) => done(source, world.setWeather(args.type), Locale("NOTIFY_WEATHER", args.type.toUpperCase()))), addCommand("time", {
+}, (source, args) => reply(source, worldActions.weather(source, args.type))), addCommand("time", {
 	help: Locale("COMMAND_TIME"),
 	params: [{
 		name: "hour",
@@ -1502,7 +1750,7 @@ addCommand("weather", {
 		optional: !0
 	}],
 	restricted: !0
-}, (source, args) => done(source, world.setTime(args.hour, args.minute ?? 0), Locale("NOTIFY_TIME", args.hour, args.minute ?? 0))), addCommand("blackout", {
+}, (source, args) => reply(source, worldActions.time(source, args.hour, args.minute ?? 0))), addCommand("blackout", {
 	help: Locale("COMMAND_BLACKOUT"),
 	params: [{
 		name: "on",
@@ -1510,7 +1758,7 @@ addCommand("weather", {
 		help: Locale("COMMAND_P_ON")
 	}],
 	restricted: !0
-}, (source, args) => done(source, world.setBlackout(args.on === 1), Locale(args.on === 1 ? "NOTIFY_BLACKOUT_ON" : "NOTIFY_BLACKOUT_OFF"))), addCommand("freezetime", {
+}, (source, args) => reply(source, worldActions.blackout(source, args.on === 1))), addCommand("freezetime", {
 	help: Locale("COMMAND_FREEZETIME"),
 	params: [{
 		name: "on",
@@ -1518,7 +1766,7 @@ addCommand("weather", {
 		help: Locale("COMMAND_P_ON")
 	}],
 	restricted: !0
-}, (source, args) => done(source, world.freezeTime(args.on === 1), Locale(args.on === 1 ? "NOTIFY_FREEZE_ON" : "NOTIFY_FREEZE_OFF")));
+}, (source, args) => reply(source, worldActions.freeze(source, args.on === 1)));
 const itemParams = [
 	{
 		name: "id",
@@ -1565,7 +1813,52 @@ addCommand("giveitem", {
 	help: Locale("COMMAND_GIVEKEY"),
 	restricted: !0,
 	params: [optionalId]
-}, (source, args) => answer(source, actions.giveKeys(source, args.id ?? source))), onClientCallback(EVENTS.access, (source) => !!IsPlayerAceAllowed(String(source), ADMIN.ace)), onClientCallback(EVENTS.noclip, { args: ([on]) => typeof on == "boolean" ? [on] : null }, (source, on) => on && !IsPlayerAceAllowed(String(source), ADMIN.ace) ? {
+}, (source, args) => answer(source, actions.giveKeys(source, args.id ?? source)));
+// resource/server/controls.ts
+const core = resourceExport("ai-core"), WORLD_FIELDS = [
+	"weather",
+	"hour",
+	"minute",
+	"freezeTime",
+	"blackout"
+];
+new class {
+	last = readControls(panel.get("controls"));
+	constructor() {
+		commitControls({
+			announceSend: !1,
+			warnSend: !1
+		}), this.last = readControls(panel.get("controls")), panel.rule("controls", (_key, next) => this.check(readControls(next))), panel.onChange("controls", () => this.edited());
+	}
+	check(next) {
+		if (next.announceSend && !this.last.announceSend && !next.announceText) return "ERR_MESSAGE_EMPTY";
+		if (next.warnSend && !this.last.warnSend) {
+			let target = next.warnPlayer ? core.GetSourceByCitizenId(next.warnPlayer) : null;
+			if (target === null || target === panel.editor) return "ERR_TARGET";
+			if (!next.warnReason) return "ERR_REASON_EMPTY";
+		}
+		return WORLD_FIELDS.some((f) => next[f] !== this.last[f]) && world.getWeather() === null ? "ERR_NO_WEATHER" : null;
+	}
+	edited() {
+		let before = this.last, now = readControls(panel.get("controls"));
+		this.last = now;
+		let admin = panel.editor;
+		if (admin !== 0) {
+			if (now.announceSend && !before.announceSend && (actions.announce(admin, now.announceText), setImmediate(() => commitControls({
+				announceSend: !1,
+				announceText: ""
+			}))), now.warnSend && !before.warnSend) {
+				let target = core.GetSourceByCitizenId(now.warnPlayer);
+				target !== null && actions.warn(admin, target, now.warnReason), setImmediate(() => commitControls({
+					warnSend: !1,
+					warnReason: "",
+					warnPlayer: ""
+				}));
+			}
+			now.weather !== before.weather && now.weather && worldActions.weather(admin, now.weather), (now.hour !== before.hour || now.minute !== before.minute) && worldActions.time(admin, now.hour, now.minute), now.freezeTime !== before.freezeTime && worldActions.freeze(admin, now.freezeTime), now.blackout !== before.blackout && worldActions.blackout(admin, now.blackout);
+		}
+	}
+}(), onClientCallback(EVENTS.access, (source) => !!IsPlayerAceAllowed(String(source), ADMIN.ace)), onClientCallback(EVENTS.noclip, { args: ([on]) => typeof on == "boolean" ? [on] : null }, (source, on) => on && !IsPlayerAceAllowed(String(source), ADMIN.ace) ? {
 	ok: !1,
 	error: "ERR_NOT_ALLOWED"
 } : (aiLog("actions", on ? "noclip on" : "noclip off", { source }), { ok: !0 })), onClientCallback(EVENTS.players, () => getPlayers().map((p) => ({
@@ -1577,8 +1870,17 @@ addCommand("giveitem", {
 		count: 2,
 		windowMs: 1e3
 	}
+}), onClientCallback(EVENTS.worldState, () => ({
+	weather: world.getWeather(),
+	time: world.getTime()
+}), {
+	guards: [isAdmin()],
+	rate: {
+		count: 2,
+		windowMs: 1e3
+	}
 });
-const parseAction = ([action, target, value]) => !isMenuAction(action) || target != null && !(typeof target == "number" && Number.isInteger(target) && target > 0) || value != null && !(typeof value == "string" && value.length <= 64) ? null : [
+const parseAction = ([action, target, value]) => !isMenuAction(action) || target != null && !(typeof target == "number" && Number.isInteger(target) && target > 0) || value != null && !(typeof value == "string" && value.length <= 300) ? null : [
 	action,
 	target ?? null,
 	value ?? null
@@ -1600,6 +1902,15 @@ function runAction(source, action, target, value) {
 			return actions.giveItem(source, who, item, Number(count));
 		}
 		case "inventory": return actions.openInventory(source, who);
+		case "warn": return actions.warn(source, who, value ?? "");
+		case "announce": return actions.announce(source, value ?? "");
+		case "weather": return worldActions.weather(source, value ?? "");
+		case "time": {
+			let [hour = "", minute = "0"] = (value ?? "").split(":");
+			return worldActions.time(source, Number(hour), Number(minute));
+		}
+		case "freeze": return worldActions.freeze(source, value === "1");
+		case "blackout": return worldActions.blackout(source, value === "1");
 		default: return action;
 	}
 }

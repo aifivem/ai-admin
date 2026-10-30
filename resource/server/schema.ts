@@ -1,6 +1,7 @@
 import type { PanelSchema } from "@aicore-fivem/shared";
+import { CONTROLS_FILE, CONTROLS_TABS } from "./schemaControls";
 
-/** ai-admin's panel: noclip speeds and how announcements look. */
+/** ai-admin's panel: noclip speeds and the admin car; messages and world controls (`schemaControls.ts`). */
 export const adminSchema: PanelSchema = {
   title: "ADMIN_TITLE",
   icon: "user",
@@ -15,11 +16,6 @@ export const adminSchema: PanelSchema = {
         noclipFast: { type: "number", min: 1, max: 20 },
         noclipFaster: { type: "number", min: 1, max: 50 },
         noclipSlow: { type: "number", min: 0.01, max: 1 },
-        announceKind: {
-          type: "enum",
-          values: ["info", "success", "warning", "error"],
-        },
-        announceSeconds: { type: "number", min: 2, max: 60, integer: true },
         carMaxed: { type: "bool" },
         carFuel: { type: "number", min: 0, max: 100, integer: true },
         carEngineOn: { type: "bool" },
@@ -31,13 +27,12 @@ export const adminSchema: PanelSchema = {
         noclipFast: 2,
         noclipFaster: 4,
         noclipSlow: 0.05,
-        announceKind: "warning",
-        announceSeconds: 10,
         carMaxed: false,
         carFuel: 100,
         carEngineOn: true,
       },
     },
+    controls: CONTROLS_FILE,
   },
   tabs: [
     {
@@ -112,35 +107,6 @@ export const adminSchema: PanelSchema = {
           ],
         },
         {
-          icon: "comments",
-          title: "ADMIN_C_ANNOUNCE",
-          desc: "ADMIN_C_ANNOUNCE_DESC",
-          fields: [
-            {
-              widget: "select",
-              path: "announceKind",
-              label: "ADMIN_F_ANNOUNCE_KIND",
-              hint: "ADMIN_H_ANNOUNCE_KIND",
-              options: [
-                { value: "info", label: "ADMIN_O_INFO" },
-                { value: "success", label: "ADMIN_O_SUCCESS" },
-                { value: "warning", label: "ADMIN_O_WARNING" },
-                { value: "error", label: "ADMIN_O_ERROR" },
-              ],
-            },
-            {
-              widget: "number",
-              path: "announceSeconds",
-              label: "ADMIN_F_ANNOUNCE_TIME",
-              hint: "ADMIN_H_ANNOUNCE_TIME",
-              min: 2,
-              max: 60,
-              step: 1,
-              unit: "s",
-            },
-          ],
-        },
-        {
           icon: "car",
           title: "ADMIN_C_CAR",
           desc: "ADMIN_C_CAR_DESC",
@@ -170,5 +136,6 @@ export const adminSchema: PanelSchema = {
         },
       ],
     },
+    ...CONTROLS_TABS,
   ],
 };

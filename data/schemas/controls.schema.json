@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ai-admin/data/controls.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "This file's JSON Schema (for editors)."
+    },
+    "announceText": {
+      "description": "Message: Up to 300 characters; shown as \"Announcement: <message>\".",
+      "type": "string",
+      "minLength": 0,
+      "maxLength": 300
+    },
+    "announceKind": {
+      "description": "Style: Colour and icon of the notification.",
+      "enum": [
+        "info",
+        "success",
+        "warning",
+        "error"
+      ]
+    },
+    "announceSeconds": {
+      "description": "Time on screen: Seconds the announcement stays.",
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 60
+    },
+    "announceSend": {
+      "description": "Send now: Switch on to send the message to everyone; it switches itself off and the message box empties.",
+      "type": "boolean"
+    },
+    "warnPlayer": {
+      "description": "Player: Players online when the panel opened; reopen the panel for players who joined since.",
+      "type": "string",
+      "minLength": 0,
+      "maxLength": 64
+    },
+    "warnReason": {
+      "description": "Reason: What the player did wrong, up to 300 characters; the player reads it as written.",
+      "type": "string",
+      "minLength": 0,
+      "maxLength": 300
+    },
+    "warnSend": {
+      "description": "Send now: Switch on to send the warning; it switches itself off and the form empties.",
+      "type": "boolean"
+    },
+    "weather": {
+      "description": "Weather: Picking one sets it for everyone now.",
+      "enum": [
+        "",
+        "EXTRASUNNY",
+        "CLEAR",
+        "NEUTRAL",
+        "SMOG",
+        "FOGGY",
+        "OVERCAST",
+        "CLOUDS",
+        "CLEARING",
+        "RAIN",
+        "THUNDER",
+        "SNOW",
+        "BLIZZARD",
+        "SNOWLIGHT",
+        "XMAS",
+        "HALLOWEEN"
+      ]
+    },
+    "hour": {
+      "description": "Hour: 0 to 23.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 23
+    },
+    "minute": {
+      "description": "Minute",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 59
+    },
+    "freezeTime": {
+      "description": "Stop the clock: The time stays where it is until switched off.",
+      "type": "boolean"
+    },
+    "blackout": {
+      "description": "Blackout: City lights off for everyone.",
+      "type": "boolean"
+    }
+  },
+  "required": []
+}

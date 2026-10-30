@@ -7,7 +7,12 @@ import {
 } from "@aicore-fivem/lib/client";
 import { isRecord } from "@aicore-fivem/lib/shared";
 import { Locale } from "common";
-import { EVENTS, readSettings, type TeleportPoint } from "common/admin";
+import {
+  EVENTS,
+  readSettings,
+  type MenuAction,
+  type TeleportPoint,
+} from "common/admin";
 import { Noclip } from "./noclip";
 import { teleportTo, waypoint } from "./teleport";
 
@@ -23,6 +28,20 @@ export function failure(result: unknown): string | null {
       ? result.error
       : "ERR_NOT_ALLOWED";
   return texts[key] ?? key;
+}
+
+/** Asks the server to run an action (it checks the admin again and logs); only failures are shown here. */
+export async function run(
+  action: MenuAction,
+  target: number | null = null,
+  value: string | null = null,
+): Promise<void> {
+  const error = failure(
+    await triggerServerCallback(EVENTS.action, [action, target, value]).catch(
+      () => null,
+    ),
+  );
+  if (error) notify(error, "error");
 }
 
 const reportNoclip = (on: boolean) =>

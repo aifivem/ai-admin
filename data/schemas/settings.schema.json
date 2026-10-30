@@ -43,21 +43,6 @@
       "minimum": 0.01,
       "maximum": 1
     },
-    "announceKind": {
-      "description": "Style: Colour and icon of the notification.",
-      "enum": [
-        "info",
-        "success",
-        "warning",
-        "error"
-      ]
-    },
-    "announceSeconds": {
-      "description": "Time on screen: Seconds the announcement stays.",
-      "type": "integer",
-      "minimum": 2,
-      "maximum": 60
-    },
     "carMaxed": {
       "description": "Fully upgraded: Engine, brakes, transmission, suspension and armour at their top level, turbo and xenons on.",
       "type": "boolean"

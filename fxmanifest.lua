@@ -1,5 +1,5 @@
 name 'ai-admin'
-author 'ai-core'
+author 'TGIANN'
 version '0.1.0'
 license 'GPL-3.0-only'
 description 'Admin tools: noclip, teleports, heal and revive, vehicles, announcements and a quick admin menu'

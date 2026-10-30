@@ -5,7 +5,7 @@
   "description": "Admin tools: noclip, teleports, heal and revive, vehicles, announcements and a quick admin menu",
   "license": "GPL-3.0-only",
   "author": {
-    "name": "ai-core"
+    "name": "TGIANN"
   },
   "repository": "github:TGIANN/ai-admin",
   "type": "module",

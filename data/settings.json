@@ -6,8 +6,6 @@
   "noclipFast": 2,
   "noclipFaster": 4,
   "noclipSlow": 0.05,
-  "announceKind": "warning",
-  "announceSeconds": 10,
   "carMaxed": false,
   "carFuel": 100,
   "carEngineOn": true

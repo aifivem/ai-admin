@@ -10,21 +10,8 @@ import {
 import { Locale } from "common";
 import { EVENTS, toPlayerEntries, type MenuAction } from "common/admin";
 import { waypoint } from "./teleport";
-import { failure, noclip, setNoclip } from "./tools";
-
-/** Asks the server to run an action (it checks the admin again and logs); only failures are shown here. */
-async function run(
-  action: MenuAction,
-  target: number | null = null,
-  value: string | null = null,
-): Promise<void> {
-  const error = failure(
-    await triggerServerCallback(EVENTS.action, [action, target, value]).catch(
-      () => null,
-    ),
-  );
-  if (error) notify(error, "error");
-}
+import { failure, noclip, run, setNoclip } from "./tools";
+import { announce, warn, worldMenu } from "./worldMenu";
 
 async function spawnVehicle(): Promise<void> {
   const values = await input({
@@ -71,6 +58,7 @@ const PLAYER_ACTIONS = [
   { id: "revive", icon: "user", label: "MENU_REVIVE" },
   { id: "item", icon: "box", label: "MENU_GIVE_ITEM" },
   { id: "inventory", icon: "box-open", label: "MENU_OPEN_INVENTORY" },
+  { id: "warn", icon: "triangle-exclamation", label: "MENU_WARN" },
 ] as const satisfies ReadonlyArray<{
   id: MenuAction;
   icon: string;
@@ -110,6 +98,7 @@ async function playerMenu(): Promise<boolean> {
     if (action === MENU_BACK) continue;
     const chosen = PLAYER_ACTIONS.find((a) => a.id === action);
     if (chosen?.id === "item") await giveItem(player.id);
+    else if (chosen?.id === "warn") await warn(player.id, player.name);
     else if (chosen) await run(chosen.id, player.id);
     return false;
   }
@@ -139,6 +128,8 @@ export async function openMenu(): Promise<void> {
       { id: "dv", label: Locale("MENU_DV"), icon: "car-rear" },
       { id: "item", label: Locale("MENU_GIVE_ITEM"), icon: "box" },
       { id: "players", label: Locale("MENU_PLAYERS"), icon: "users" },
+      { id: "announce", label: Locale("MENU_ANNOUNCE"), icon: "comments" },
+      { id: "world", label: Locale("MENU_WORLD"), icon: "snowflake" },
       ...(hudExports()
         ? [
             {
@@ -164,6 +155,11 @@ export async function openMenu(): Promise<void> {
     case "players":
       if (await playerMenu()) return openMenu();
       return;
+    case "world":
+      if (await worldMenu()) return openMenu();
+      return;
+    case "announce":
+      return announce();
     case "tpm":
     case "heal":
     case "revive":

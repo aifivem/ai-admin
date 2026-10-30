@@ -1,9 +1,10 @@
 /** The admin commands (ACE checked by addCommand); each runs an action from `actions.ts`. */
-import { addCommand, notify, world } from "@aicore-fivem/lib/server";
+import { addCommand, notify } from "@aicore-fivem/lib/server";
 import { createLogger } from "@aicore-fivem/lib/shared";
 import { Locale, ResourceName } from "common";
 import { EVENTS, type TeleportPoint } from "common/admin";
 import { actions, type Result } from "./actions";
+import { worldActions } from "./world";
 
 const log = createLogger(ResourceName);
 
@@ -191,16 +192,10 @@ addCommand(
       },
     ],
   },
-  (source, args) =>
-    answer(source, actions.announce(source, args.message.slice(0, 300))),
+  (source, args) => answer(source, actions.announce(source, args.message)),
 );
 
 // Time and weather through ai-core's world layer: they keep working with whatever weather script runs.
-const done = (source: number, ok: boolean, text: string) => {
-  if (!ok) return reply(source, "ERR_NO_WEATHER");
-  if (source > 0) notify(source, text, "success");
-  else log.info(text);
-};
 addCommand(
   "weather",
   {
@@ -210,12 +205,7 @@ addCommand(
     ],
     restricted: true,
   },
-  (source, args) =>
-    done(
-      source,
-      world.setWeather(args.type),
-      Locale("NOTIFY_WEATHER", args.type.toUpperCase()),
-    ),
+  (source, args) => reply(source, worldActions.weather(source, args.type)),
 );
 addCommand(
   "time",
@@ -233,11 +223,7 @@ addCommand(
     restricted: true,
   },
   (source, args) =>
-    done(
-      source,
-      world.setTime(args.hour, args.minute ?? 0),
-      Locale("NOTIFY_TIME", args.hour, args.minute ?? 0),
-    ),
+    reply(source, worldActions.time(source, args.hour, args.minute ?? 0)),
 );
 addCommand(
   "blackout",
@@ -246,12 +232,7 @@ addCommand(
     params: [{ name: "on", type: "number", help: Locale("COMMAND_P_ON") }],
     restricted: true,
   },
-  (source, args) =>
-    done(
-      source,
-      world.setBlackout(args.on === 1),
-      Locale(args.on === 1 ? "NOTIFY_BLACKOUT_ON" : "NOTIFY_BLACKOUT_OFF"),
-    ),
+  (source, args) => reply(source, worldActions.blackout(source, args.on === 1)),
 );
 addCommand(
   "freezetime",
@@ -260,12 +241,7 @@ addCommand(
     params: [{ name: "on", type: "number", help: Locale("COMMAND_P_ON") }],
     restricted: true,
   },
-  (source, args) =>
-    done(
-      source,
-      world.freezeTime(args.on === 1),
-      Locale(args.on === 1 ? "NOTIFY_FREEZE_ON" : "NOTIFY_FREEZE_OFF"),
-    ),
+  (source, args) => reply(source, worldActions.freeze(source, args.on === 1)),
 );
 
 const itemParams = [
@@ -317,6 +293,5 @@ addCommand(
 addCommand(
   "givekey",
   { help: Locale("COMMAND_GIVEKEY"), restricted: true, params: [optionalId] },
-  (source, args) =>
-    answer(source, actions.giveKeys(source, args.id ?? source)),
+  (source, args) => answer(source, actions.giveKeys(source, args.id ?? source)),
 );
