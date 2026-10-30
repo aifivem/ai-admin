@@ -8,6 +8,7 @@ import {
   optionalExport,
   spawnVehicle,
   stateBoolean,
+  vehicleKeys,
   vehicleType,
 } from "@aicore-fivem/lib/server";
 import { ADMIN, VEHICLE_BAGS } from "@aicore-fivem/shared";
@@ -239,6 +240,22 @@ export const actions = {
   },
 
   /** Opens a player's inventory on the admin's screen. */
+  /** Gives a player the keys of the vehicle the admin sits in, else the closest one within 5 m. */
+  giveKeys(source: number, target: number): Result {
+    if (source <= 0) return "ERR_PLAYER_ONLY";
+    const vehicle = nearestVehicleTo(source, 5);
+    if (!vehicle) return "ERR_NO_VEHICLE";
+    vehicleKeys.give(target, vehicle, "temporary");
+    const plate = GetVehicleNumberPlateText(vehicle).trim();
+    notify(
+      source,
+      Locale("NOTIFY_KEYS_GIVEN", plate, targetName(target)),
+      "success",
+    );
+    log("gave vehicle keys", source, target, { plate });
+    return null;
+  },
+
   openInventory(source: number, target: number): Result {
     if (source <= 0) return "ERR_PLAYER_ONLY";
     if (!inventory.openInventory(source, target)) return "ERR_INVENTORY";

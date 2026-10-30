@@ -1,6 +1,7 @@
 import { MENU_BACK } from "@aicore-fivem/shared";
 import {
   input,
+  itemPicker,
   menu,
   notify,
   optionalExport,
@@ -48,32 +49,11 @@ async function spawnVehicle(): Promise<void> {
 const hudExports = () => optionalExport("ai-hud");
 const mapAlways = () => hudExports()?.GetMinimapAlways() === true;
 
-/** Item name and count; the server checks the item exists and gives it (to a player, else the admin). */
-async function giveItem(target: number | null): Promise<void> {
-  const values = await input({
-    title: Locale("ITEM_TITLE"),
-    confirm: Locale("ITEM_CONFIRM"),
-    fields: [
-      {
-        name: "item",
-        label: Locale("ITEM_NAME"),
-        type: "text",
-        maxLength: 48,
-        placeholder: "water",
-      },
-      {
-        name: "count",
-        label: Locale("ITEM_COUNT"),
-        type: "number",
-        min: 1,
-        max: 10_000,
-      },
-    ],
+/** The item picker (every item with its picture); each pick asks the server to give it (to a player, else the admin). */
+export async function giveItem(target: number | null): Promise<void> {
+  await itemPicker({ title: Locale("ITEM_TITLE") }, (name, count) => {
+    void run("item", target, `${name}:${count}`);
   });
-  const item = values?.item;
-  const count = values?.count;
-  if (typeof item === "string" && item.trim() && typeof count === "number")
-    await run("item", target, `${item.trim()}:${Math.floor(count)}`);
 }
 
 const PLAYER_ACTIONS = [

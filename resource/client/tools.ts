@@ -31,17 +31,17 @@ const reportNoclip = (on: boolean) =>
 /** Noclip on asks the server first (admins only); off is always allowed and reported once the player landed. */
 /** The noclip controls in the HUD's key hints while flying. */
 const NOCLIP_HINTS = [
-  ["WASD", "HINT_NOCLIP_MOVE"],
-  ["Q/E", "HINT_NOCLIP_UPDOWN"],
-  ["SHIFT", "HINT_NOCLIP_FAST"],
-  ["CTRL", "HINT_NOCLIP_SLOW"],
-  ["SPACE", "HINT_NOCLIP_GROUND"],
-  ["V", "HINT_NOCLIP_VIEW"],
+  ["WASD", "HINT_NOCLIP_MOVE", "arrows-up-down-left-right"],
+  ["Q/E", "HINT_NOCLIP_UPDOWN", "up-down"],
+  ["SHIFT", "HINT_NOCLIP_FAST", "forward"],
+  ["CTRL", "HINT_NOCLIP_SLOW", "backward"],
+  ["SPACE", "HINT_NOCLIP_GROUND", "arrow-down"],
+  ["V", "HINT_NOCLIP_VIEW", "eye"],
 ] as const;
 function noclipHints(on: boolean): void {
-  NOCLIP_HINTS.forEach(([key, label], i) =>
+  NOCLIP_HINTS.forEach(([key, label, icon], i) =>
     on
-      ? keyHints.show(`noclip${i}`, { key, label: Locale(label) })
+      ? keyHints.show(`noclip${i}`, { key, label: Locale(label), icon })
       : keyHints.hide(`noclip${i}`),
   );
 }

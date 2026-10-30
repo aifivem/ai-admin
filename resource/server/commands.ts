@@ -155,6 +155,18 @@ addCommand(
     ),
 );
 addCommand(
+  "items",
+  { help: Locale("COMMAND_ITEMS"), restricted: true },
+  (source) =>
+    answer(
+      source,
+      self(source, () => {
+        emitNet(EVENTS.openItems, source);
+        return null;
+      }),
+    ),
+);
+addCommand(
   "adminmenu",
   { help: Locale("COMMAND_ADMINMENU"), restricted: true },
   (source) =>
@@ -301,4 +313,10 @@ addCommand(
     params: [{ name: "id", type: "playerId", help: Locale("COMMAND_P_ID") }],
   },
   (source, args) => answer(source, actions.openInventory(source, args.id)),
+);
+addCommand(
+  "givekey",
+  { help: Locale("COMMAND_GIVEKEY"), restricted: true, params: [optionalId] },
+  (source, args) =>
+    answer(source, actions.giveKeys(source, args.id ?? source)),
 );

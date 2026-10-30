@@ -6,7 +6,7 @@ import {
 } from "@aicore-fivem/lib/client";
 import { Locale, ResourceName } from "common";
 import { EVENTS, toTeleportPoint } from "common/admin";
-import { openMenu } from "./menu";
+import { giveItem, openMenu } from "./menu";
 import { noclip, setNoclip, teleport } from "./tools";
 
 onServerEvent(
@@ -22,6 +22,7 @@ onServerEvent(
 
 onServerEvent(EVENTS.toggleNoclip, () => void setNoclip(!noclip.on));
 onServerEvent(EVENTS.openMenu, () => void openMenu());
+onServerEvent(EVENTS.openItems, () => void giveItem(null));
 
 onServerEvent(EVENTS.coords, () => {
   const { x, y, z } = player.coords();

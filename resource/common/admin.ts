@@ -18,6 +18,8 @@ export const EVENTS = {
   teleport: "ai-admin:client:teleport",
   /** Server -> admin: () open the quick menu (the /adminmenu command). */
   openMenu: "ai-admin:client:openMenu",
+  /** Server -> admin: () open the item picker (the /items command). */
+  openItems: "ai-admin:client:openItems",
   /** Server -> admin: () print and show the position (the /coords command). */
   coords: "ai-admin:client:coords",
 } as const;
