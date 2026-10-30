@@ -1,4 +1,4 @@
-import type { PanelSchema } from "@aicore-fivem/shared"
+import type { PanelSchema } from "@aicore-fivem/shared";
 
 /** ai-admin's panel: noclip speeds and how announcements look. */
 export const adminSchema: PanelSchema = {
@@ -137,4 +137,4 @@ export const adminSchema: PanelSchema = {
       ],
     },
   ],
-}
+};
