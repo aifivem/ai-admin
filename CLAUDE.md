@@ -6,6 +6,7 @@ Admin tools: noclip, teleports (waypoint, coordinates, to / from players), heal 
 
 - Noclip is the owner's exlife implementation copied unchanged in feel (controls, speed steps, camera); only its speed numbers come from the panel, read once per start. Keep it that way: a change to how noclip moves needs the owner.
 - The server decides everything: commands are `addCommand` with `restricted: true`; the menu's one action callback has the `isAdmin()` guard; noclip on is asked from the server, off is always allowed. Clients teleport only on the server's event.
+- `weather`, `time`, `blackout`, `freezetime` go through ai-core's world layer (lib `world`), so they work with any weather script that answers the qb-weathersync contract.
 - Commands and menu run the same functions (`server/actions.ts`), which return an `ERR_*` lang key or null and log what they changed on channel `actions`.
 - Vehicles come from lib `spawnVehicle` with key purpose `temporary`; lib `vehicleType(model, admin)` checks the model first (ai-core's client answers), before the admin's old car is deleted.
 - Lang keys: `ADMIN_*` are panel texts only; game texts use `ERR_`, `NOTIFY_`, `MENU_`, `CAR_`, `COMMAND_`, `KEYBIND_` (ai-core's generic panel texts also start with `ADMIN_`).

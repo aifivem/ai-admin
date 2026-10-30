@@ -1,5 +1,5 @@
 /** The admin commands (ACE checked by addCommand); each runs an action from `actions.ts`. */
-import { addCommand, notify } from "@aicore-fivem/lib/server";
+import { addCommand, notify, world } from "@aicore-fivem/lib/server";
 import { createLogger } from "@aicore-fivem/lib/shared";
 import { Locale, ResourceName } from "common";
 import { EVENTS, type TeleportPoint } from "common/admin";
@@ -181,4 +181,77 @@ addCommand(
   },
   (source, args) =>
     answer(source, actions.announce(source, args.message.slice(0, 300))),
+);
+
+// Time and weather through ai-core's world layer: they keep working with whatever weather script runs.
+const done = (source: number, ok: boolean, text: string) => {
+  if (!ok) return reply(source, "ERR_NO_WEATHER");
+  if (source > 0) notify(source, text, "success");
+  else log.info(text);
+};
+addCommand(
+  "weather",
+  {
+    help: Locale("COMMAND_WEATHER"),
+    params: [
+      { name: "type", type: "string", help: Locale("COMMAND_P_WEATHER") },
+    ],
+    restricted: true,
+  },
+  (source, args) =>
+    done(
+      source,
+      world.setWeather(args.type),
+      Locale("NOTIFY_WEATHER", args.type.toUpperCase()),
+    ),
+);
+addCommand(
+  "time",
+  {
+    help: Locale("COMMAND_TIME"),
+    params: [
+      { name: "hour", type: "number", help: Locale("COMMAND_P_HOUR") },
+      {
+        name: "minute",
+        type: "number",
+        help: Locale("COMMAND_P_MINUTE"),
+        optional: true,
+      },
+    ],
+    restricted: true,
+  },
+  (source, args) =>
+    done(
+      source,
+      world.setTime(args.hour, args.minute ?? 0),
+      Locale("NOTIFY_TIME", args.hour, args.minute ?? 0),
+    ),
+);
+addCommand(
+  "blackout",
+  {
+    help: Locale("COMMAND_BLACKOUT"),
+    params: [{ name: "on", type: "number", help: Locale("COMMAND_P_ON") }],
+    restricted: true,
+  },
+  (source, args) =>
+    done(
+      source,
+      world.setBlackout(args.on === 1),
+      Locale(args.on === 1 ? "NOTIFY_BLACKOUT_ON" : "NOTIFY_BLACKOUT_OFF"),
+    ),
+);
+addCommand(
+  "freezetime",
+  {
+    help: Locale("COMMAND_FREEZETIME"),
+    params: [{ name: "on", type: "number", help: Locale("COMMAND_P_ON") }],
+    restricted: true,
+  },
+  (source, args) =>
+    done(
+      source,
+      world.freezeTime(args.on === 1),
+      Locale(args.on === 1 ? "NOTIFY_FREEZE_ON" : "NOTIFY_FREEZE_OFF"),
+    ),
 );

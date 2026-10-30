@@ -310,7 +310,7 @@ function toPatch(value) {
 		default: return null;
 	}
 }
-const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$5 = resourceExport(CORE.resource), ERR = {
+const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$6 = resourceExport(CORE.resource), ERR = {
 	type: "ADMIN_ERR_TYPE",
 	range: "ADMIN_ERR_RANGE",
 	length: "ADMIN_ERR_LENGTH",
@@ -324,7 +324,7 @@ const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(va
 		if (cached && Date.now() - cached.at < 2e3) return cached.values.size > 0 ? cached.values : null;
 		let list = [];
 		try {
-			list = core$5.GetLookupValues(source);
+			list = core$6.GetLookupValues(source);
 		} catch {}
 		let values = new Set(Array.isArray(list) ? list.filter((v) => typeof v == "string") : []);
 		return this.lists.set(source, {
@@ -526,7 +526,7 @@ function writeSchema(resource, name, text, log) {
 	(0, node_fs_promises.mkdir)(dir, { recursive: !0 }).then(() => (0, node_fs_promises.writeFile)(`${dir}/${name}.schema.json`, text, "utf8")).catch((error) => log.error(`writing ${resource}/${path} failed`, error));
 }
 // ../../../packages/lib/src/server/admin/panel.ts
-const core$4 = resourceExport(CORE.resource), DEFAULT_KEY = "^[a-z0-9_]{2,32}$";
+const core$5 = resourceExport(CORE.resource), DEFAULT_KEY = "^[a-z0-9_]{2,32}$";
 function imported(spec, value) {
 	let base = clone(spec.newRecord ?? {}), out = {};
 	for (let name of Object.keys(spec.sections)) {
@@ -547,7 +547,7 @@ var AdminPanel = class {
 	constructor(schema) {
 		this.schema = schema;
 		for (let [name, spec] of Object.entries(schema.files)) this.load(name, spec);
-		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges)), setImmediate(() => core$4.RegisterAdminPanel(this.resource));
+		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges)), setImmediate(() => core$5.RegisterAdminPanel(this.resource));
 	}
 	get(file) {
 		return this.data.get(file) ?? {};
@@ -633,7 +633,7 @@ var AdminPanel = class {
 		let spec = this.schema.files[file], data = this.get(file), value = key === void 0 ? data : data[key] ?? null;
 		this.dataFiles.get(file)?.write(data);
 		for (let handler of this.handlers.get(file) ?? []) handler(key, value);
-		if (core$4.AdminPanelChanged({
+		if (core$5.AdminPanelChanged({
 			resource: this.resource,
 			file,
 			key,
@@ -672,7 +672,7 @@ function notify(source, text, kind = "info", duration) {
 }
 resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/online.ts
-const core$2 = resourceExport(CORE.resource);
+const core$3 = resourceExport(CORE.resource);
 var OnlinePlayers = class {
 	players = new Map();
 	onDuty = new Map();
@@ -681,7 +681,7 @@ var OnlinePlayers = class {
 		if (this.started) return;
 		this.started = !0;
 		let load = (source, character) => {
-			this.put(source, character, (core$2.GetJobs(source) ?? []).map((m) => m.job), (core$2.GetGangs(source) ?? []).map((m) => m.gang)), this.setDuty(source, core$2.GetDutyJob(source));
+			this.put(source, character, (core$3.GetJobs(source) ?? []).map((m) => m.job), (core$3.GetGangs(source) ?? []).map((m) => m.gang)), this.setDuty(source, core$3.GetDutyJob(source));
 		};
 		on(CORE.playerLoadedEvent, load), on(CORE.playerUnloadedEvent, (source) => this.drop(source)), on(CORE.jobsChangedEvent, (source, jobs) => {
 			let player = this.players.get(source);
@@ -690,8 +690,8 @@ var OnlinePlayers = class {
 			let player = this.players.get(source);
 			player && (player.gangs = gangs.map((m) => m.gang));
 		}), on(CORE.dutyChangedEvent, (source, job) => this.setDuty(source, job));
-		for (let source of core$2.GetLoadedSources()) {
-			let character = core$2.GetCharacter(source);
+		for (let source of core$3.GetLoadedSources()) {
+			let character = core$3.GetCharacter(source);
 			character && load(source, character);
 		}
 	}
@@ -737,10 +737,10 @@ var OnlinePlayers = class {
 const EMPTY = new Set();
 new OnlinePlayers();
 // ../../../packages/lib/src/server/vehicleKeys.ts
-const core$1 = resourceExport(CORE.resource), vehicleKeys = {
-	give: (source, vehicle, purpose = "temporary") => core$1.GiveVehicleKeys(source, vehicle, purpose),
-	remove: (source, vehicle) => core$1.RemoveVehicleKeys(source, vehicle),
-	has: (source, vehicle) => core$1.HasVehicleKeys(source, vehicle)
+const core$2 = resourceExport(CORE.resource), vehicleKeys = {
+	give: (source, vehicle, purpose = "temporary") => core$2.GiveVehicleKeys(source, vehicle, purpose),
+	remove: (source, vehicle) => core$2.RemoveVehicleKeys(source, vehicle),
+	has: (source, vehicle) => core$2.HasVehicleKeys(source, vehicle)
 }, TYPES = new Set([
 	"automobile",
 	"bike",
@@ -938,6 +938,15 @@ var Mirror = class {
 	set(entity, value) {
 		DoesEntityExist(entity) && (Entity(entity).state.set(this.key, value ?? null, !0), this.put(entity, value));
 	}
+};
+// ../../../packages/lib/src/server/world.ts
+const core = resourceExport(CORE.resource), world = {
+	getWeather: () => core.GetWeather(),
+	setWeather: (type) => core.SetWeather(type),
+	getTime: () => core.GetTime(),
+	setTime: (hour, minute = 0) => core.SetTime(hour, minute),
+	setBlackout: (on) => core.SetBlackout(on),
+	freezeTime: (on) => core.FreezeTime(on)
 };
 // ../../../packages/lib/src/server/index.ts
 function isOnline(source) {
@@ -1335,7 +1344,49 @@ addCommand("noclip", {
 		type: "longString",
 		help: Locale("COMMAND_P_MESSAGE")
 	}]
-}, (source, args) => answer(source, actions.announce(source, args.message.slice(0, 300)))), onClientCallback(EVENTS.access, (source) => !!IsPlayerAceAllowed(String(source), ADMIN.ace)), onClientCallback(EVENTS.noclip, { args: ([on]) => typeof on == "boolean" ? [on] : null }, (source, on) => on && !IsPlayerAceAllowed(String(source), ADMIN.ace) ? {
+}, (source, args) => answer(source, actions.announce(source, args.message.slice(0, 300))));
+const done = (source, ok, text) => {
+	if (!ok) return reply(source, "ERR_NO_WEATHER");
+	source > 0 ? notify(source, text, "success") : log.info(text);
+};
+addCommand("weather", {
+	help: Locale("COMMAND_WEATHER"),
+	params: [{
+		name: "type",
+		type: "string",
+		help: Locale("COMMAND_P_WEATHER")
+	}],
+	restricted: !0
+}, (source, args) => done(source, world.setWeather(args.type), Locale("NOTIFY_WEATHER", args.type.toUpperCase()))), addCommand("time", {
+	help: Locale("COMMAND_TIME"),
+	params: [{
+		name: "hour",
+		type: "number",
+		help: Locale("COMMAND_P_HOUR")
+	}, {
+		name: "minute",
+		type: "number",
+		help: Locale("COMMAND_P_MINUTE"),
+		optional: !0
+	}],
+	restricted: !0
+}, (source, args) => done(source, world.setTime(args.hour, args.minute ?? 0), Locale("NOTIFY_TIME", args.hour, args.minute ?? 0))), addCommand("blackout", {
+	help: Locale("COMMAND_BLACKOUT"),
+	params: [{
+		name: "on",
+		type: "number",
+		help: Locale("COMMAND_P_ON")
+	}],
+	restricted: !0
+}, (source, args) => done(source, world.setBlackout(args.on === 1), Locale(args.on === 1 ? "NOTIFY_BLACKOUT_ON" : "NOTIFY_BLACKOUT_OFF"))), addCommand("freezetime", {
+	help: Locale("COMMAND_FREEZETIME"),
+	params: [{
+		name: "on",
+		type: "number",
+		help: Locale("COMMAND_P_ON")
+	}],
+	restricted: !0
+}, (source, args) => done(source, world.freezeTime(args.on === 1), Locale(args.on === 1 ? "NOTIFY_FREEZE_ON" : "NOTIFY_FREEZE_OFF"))), onClientCallback(EVENTS.access, (source) => !!IsPlayerAceAllowed(String(source), ADMIN.ace)), onClientCallback(EVENTS.noclip, { args: ([on]) => typeof on == "boolean" ? [on] : null }, (source, on) => on && !IsPlayerAceAllowed(String(source), ADMIN.ace) ? {
 	ok: !1,
 	error: "ERR_NOT_ALLOWED"
 } : (aiLog("actions", on ? "noclip on" : "noclip off", { source }), { ok: !0 })), onClientCallback(EVENTS.players, () => getPlayers().map((p) => ({
