@@ -1,5 +1,4 @@
-import { cache, Keybind, notify, onServerCallback, onServerEvent } from "@aicore-fivem/lib/client";
-import { vehicleTypeOfClass } from "@aicore-fivem/lib/shared";
+import { Keybind, notify, onServerEvent, player } from "@aicore-fivem/lib/client";
 import { Locale, ResourceName } from "common";
 import { EVENTS, toTeleportPoint } from "common/admin";
 import { openMenu } from "./menu";
@@ -20,18 +19,11 @@ onServerEvent(EVENTS.toggleNoclip, () => void setNoclip(!noclip.on));
 onServerEvent(EVENTS.openMenu, () => void openMenu());
 
 onServerEvent(EVENTS.coords, () => {
-  const [x = 0, y = 0, z = 0] = GetEntityCoords(cache.ped, false);
+  const { x, y, z } = player.coords();
   const f = (n: number) => n.toFixed(2);
-  const text = `vector4(${f(x)}, ${f(y)}, ${f(z)}, ${f(GetEntityHeading(cache.ped))})`;
+  const text = `vector4(${f(x)}, ${f(y)}, ${f(z)}, ${f(player.heading())})`;
   console.log(text);
   notify(Locale("NOTIFY_COORDS", text), "info", 15_000);
-});
-
-/** The server asks which spawn type a model is; null when the game has no such vehicle. */
-onServerCallback(EVENTS.vehicleType, (model) => {
-  if (typeof model !== "string") return null;
-  const hash = GetHashKey(model);
-  return IsModelInCdimage(hash) && IsModelAVehicle(hash) ? vehicleTypeOfClass(GetVehicleClassFromName(hash)) : null;
 });
 
 new Keybind({

@@ -20,8 +20,6 @@ export const EVENTS = {
   openMenu: "ai-admin:client:openMenu",
   /** Server -> admin: () print and show the position (the /coords command). */
   coords: "ai-admin:client:coords",
-  /** Server -> client callback: (model) -> CreateVehicleServerSetter type, or null when the model is not a vehicle. */
-  vehicleType: "ai-admin:vehicleType",
 } as const;
 
 /** What the quick menu asks the server to do; the commands run the same actions. */

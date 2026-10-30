@@ -844,6 +844,52 @@ const vehicleKeys = {
 	has: (source, vehicle) => core$1.HasVehicleKeys(source, vehicle)
 };
 
+// ../../../packages/lib/src/server/vehicle.ts
+/** Every type `CreateVehicleServerSetter` takes; a client answering anything else is ignored. */
+const TYPES = /* @__PURE__ */ new Set([
+	"automobile",
+	"bike",
+	"boat",
+	"heli",
+	"plane",
+	"submarine",
+	"trailer",
+	"train"
+]);
+/** Model -> spawn type, learned from clients once per model (the server cannot read a vehicle class). */
+const types = /* @__PURE__ */ new Map();
+/**
+* The `CreateVehicleServerSetter` type of a model asked from a player's client (ai-core answers); null: no such
+* vehicle. Only a valid type is cached: "no such model" is asked again, so one modified client cannot block a model.
+*/
+async function vehicleType(model, asker) {
+	const known = types.get(model);
+	if (known !== void 0) return known;
+	const answer = await triggerClientCallback(CORE.vehicleTypeCallback, asker, [model]).catch(() => null);
+	if (typeof answer !== "string" || !TYPES.has(answer)) return null;
+	types.set(model, answer);
+	return answer;
+}
+/**
+* Creates a networked vehicle on the server (strict entity lockdown) and sets it up in one step: plate, fuel, state
+* bags, keys for its purpose, a driver. Resolves the entity, or null when the model does not exist or creation failed.
+*/
+async function spawnVehicle(options) {
+	const type = options.asker !== void 0 ? await vehicleType(options.model, options.asker) : options.type ?? "automobile";
+	if (!type) return null;
+	const { x, y, z, heading } = options.coords;
+	const vehicle = CreateVehicleServerSetter(GetHashKey(options.model), type, x, y, z, heading);
+	if (!await waitFor(() => DoesEntityExist(vehicle) || void 0, 5e3).catch(() => false)) return null;
+	if (options.persistent !== false) SetEntityOrphanMode(vehicle, 2);
+	if (options.plate) SetVehicleNumberPlateText(vehicle, options.plate.slice(0, 8));
+	const state = Entity(vehicle).state;
+	if (options.fuel !== void 0) state.set(VEHICLE_BAGS.fuel, options.fuel, true);
+	for (const [key, value] of Object.entries(options.bags ?? {})) state.set(key, value, true);
+	if (options.driver !== void 0) SetPedIntoVehicle(GetPlayerPed(String(options.driver)), vehicle, -1);
+	if (options.keysTo !== void 0) vehicleKeys.give(options.keysTo, vehicle, options.purpose ?? "temporary");
+	return vehicle;
+}
+
 // ../../../packages/lib/src/server/proximity.ts
 /**
 * Who is near whom without scanning every player: ai-core keeps which players are in each other's OneSync scope
@@ -24966,9 +25012,7 @@ const EVENTS = {
 	/** Server -> admin: () open the quick menu (the /adminmenu command). */
 	openMenu: "ai-admin:client:openMenu",
 	/** Server -> admin: () print and show the position (the /coords command). */
-	coords: "ai-admin:client:coords",
-	/** Server -> client callback: (model) -> CreateVehicleServerSetter type, or null when the model is not a vehicle. */
-	vehicleType: "ai-admin:vehicleType"
+	coords: "ai-admin:client:coords"
 };
 /** What the quick menu asks the server to do; the commands run the same actions. */
 const MENU_ACTIONS = [
@@ -25201,11 +25245,6 @@ const log$1 = (message, source, target, metadata) => aiLog("actions", message, {
 	target,
 	metadata
 });
-/** Vehicle spawn type of a model, asked from the admin's client (null: not a vehicle model). */
-async function vehicleType(source, model) {
-	const answer = await triggerClientCallback(EVENTS.vehicleType, source, [model]).catch(() => null);
-	return typeof answer === "string" && /^[a-z]{3,12}$/.test(answer) ? answer : null;
-}
 function nearestVehicle(source, metres) {
 	const p = pos(source);
 	let best = 0;
@@ -25274,17 +25313,26 @@ const actions = {
 	async car(source, model) {
 		const hashName = model.toLowerCase();
 		if (!/^[a-z0-9_]{1,32}$/.test(hashName)) return "ERR_MODEL";
-		const type = await vehicleType(source, hashName);
+		const type = await vehicleType(hashName, source);
 		if (!type || !isOnline(source)) return "ERR_MODEL";
 		const admin = ped(source);
 		const current = GetVehiclePedIsIn(admin, false);
 		if (current && GetPedInVehicleSeat(current, -1) === admin && Entity(current).state[VEHICLE_BAGS.owned] !== true) DeleteEntity(current);
 		const p = pos(source);
-		const vehicle = CreateVehicleServerSetter(GetHashKey(hashName), type, p.x, p.y, p.z, GetEntityHeading(admin));
-		if (!await waitFor(() => DoesEntityExist(vehicle) || void 0, 5e3).catch(() => false)) return "ERR_VEHICLE";
-		Entity(vehicle).state.set(VEHICLE_BAGS.fuel, 100, true);
-		SetPedIntoVehicle(admin, vehicle, -1);
-		vehicleKeys.give(source, vehicle, "temporary");
+		const coords = {
+			...p,
+			heading: GetEntityHeading(admin)
+		};
+		if (await spawnVehicle({
+			model: hashName,
+			type,
+			coords,
+			fuel: 100,
+			driver: source,
+			keysTo: source,
+			purpose: "temporary",
+			persistent: false
+		}) === null) return "ERR_VEHICLE";
 		notify(source, Locale("NOTIFY_CAR_SPAWNED", hashName), "success");
 		log$1("spawned a vehicle", source, void 0, {
 			model: hashName,

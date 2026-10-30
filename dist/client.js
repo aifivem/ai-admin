@@ -67,18 +67,6 @@ try{
 			return value === void 0 ? match : String(value);
 		});
 	}
-	/** GTA vehicle class (`GetVehicleClassFromName`) -> the type `CreateVehicleServerSetter` wants. */
-	function vehicleTypeOfClass(vehicleClass) {
-		switch (vehicleClass) {
-			case 8:
-			case 13: return "bike";
-			case 14: return "boat";
-			case 15: return "heli";
-			case 16: return "plane";
-			case 21: return "train";
-			default: return "automobile";
-		}
-	}
 	/** Console output prefixed with the resource name, so server logs show where a line came from. */
 	function createLogger(resource) {
 		const prefix = `[${resource}]`;
@@ -137,19 +125,6 @@ try{
 				timer
 			});
 			emitNet(requestEvent(name), resource$1, id, ...args);
-		});
-	}
-	/** Answers the server's `triggerClientCallback(name, source, ...)`. Arguments are unknown: parse before use. */
-	function onServerCallback(name, handler) {
-		onNet(requestEvent(name), async (caller, id, ...args) => {
-			if (!fromServer() || typeof caller !== "string" || typeof id !== "number") return;
-			try {
-				const result = await handler(...args);
-				emitNet(responseEvent(caller), id, true, result ?? null);
-			} catch (error) {
-				log$3.error(`callback ${name} failed`, error);
-				emitNet(responseEvent(caller), id, false, null);
-			}
 		});
 	}
 
@@ -548,6 +523,15 @@ try{
 	const LABEL = `AI_BLIP_${GetCurrentResourceName()}`;
 	AddTextEntry(LABEL, "~a~");
 
+// ../../../packages/lib/src/client/streaming.ts
+/** Loads an animation dictionary. Call `RemoveAnimDict(dict)` when it is no longer played. */
+	async function requestAnimDict(dict, timeoutMs = 1e4) {
+		if (!DoesAnimDictExist(dict)) throw new Error(`anim dict ${dict} does not exist`);
+		RequestAnimDict(dict);
+		await waitFor(() => HasAnimDictLoaded(dict) || void 0, timeoutMs);
+		return dict;
+	}
+
 // ../../../packages/lib/src/client/localPed.ts
 	const log$1 = createLogger(GetCurrentResourceName());
 	/** One zone set for every local ped of this resource: peds exist only while their player is near. */
@@ -569,6 +553,66 @@ try{
 	for (const event of ["onClientResourceStart", "onClientResourceStop"]) on(event, (resource) => {
 		if (resource === TARGET || resource === "ai-target") setTimeout(restyleAll, 0);
 	});
+
+// ../../../packages/lib/src/client/player.ts
+/** Fades the screen out and resolves once it is black. */
+	async function fadeOut(ms = 300) {
+		DoScreenFadeOut(ms);
+		await waitFor(() => IsScreenFadedOut() || void 0, ms + 2e3).catch(() => void 0);
+	}
+	/**
+	* The local player's ped, like ox_core's player object: position, moves and animations in one place. Reads use
+	* `cache.ped` (loops); one-off actions read the ped fresh, so they also work right after a model change.
+	*/
+	const player = {
+		get ped() {
+			return cache.ped;
+		},
+		coords() {
+			const [x = 0, y = 0, z = 0] = GetEntityCoords(cache.ped, false);
+			return {
+				x,
+				y,
+				z
+			};
+		},
+		heading() {
+			return GetEntityHeading(cache.ped);
+		},
+		/** Distance from the ped to a point, in metres. */
+		distanceTo(point) {
+			const [x = 0, y = 0, z = 0] = GetEntityCoords(cache.ped, false);
+			return Math.hypot(x - point.x, y - point.y, z - point.z);
+		},
+		freeze(state) {
+			FreezeEntityPosition(PlayerPedId(), state);
+		},
+		/** Moves the player and waits for the collision there, behind a fade unless `fade: false`. */
+		async teleport(to, options = {}) {
+			const fade = options.fade !== false;
+			if (fade) await fadeOut();
+			const ped = PlayerPedId();
+			RequestCollisionAtCoord(to.x, to.y, to.z);
+			if (options.keepVehicle) SetPedCoordsKeepVehicle(ped, to.x, to.y, to.z);
+			else if (options.ground === false) SetEntityCoordsNoOffset(ped, to.x, to.y, to.z, false, false, false);
+			else SetEntityCoords(ped, to.x, to.y, to.z, false, false, false, false);
+			if (options.heading !== void 0) SetEntityHeading(ped, options.heading);
+			await waitFor(() => HasCollisionLoadedAroundEntity(ped) || void 0, 5e3).catch(() => void 0);
+			if (fade) {
+				await sleep(100);
+				DoScreenFadeIn(400);
+			}
+		},
+		/** Plays an animation on the ped (loads and frees the dictionary); resolves when it started. */
+		async playAnim(dict, clip, options = {}) {
+			await requestAnimDict(dict);
+			TaskPlayAnim(PlayerPedId(), dict, clip, options.blendIn ?? 8, options.blendOut ?? -8, options.duration ?? -1, options.flag ?? 49, 0, false, false, false);
+			RemoveAnimDict(dict);
+		},
+		stopAnim() {
+			ClearPedTasks(PlayerPedId());
+		}
+	};
 
 // ../../../packages/lib/src/client/notify.ts
 	const core$2 = resourceExport(CORE.resource);
@@ -776,9 +820,7 @@ try{
 		/** Server -> admin: () open the quick menu (the /adminmenu command). */
 		openMenu: "ai-admin:client:openMenu",
 		/** Server -> admin: () print and show the position (the /coords command). */
-		coords: "ai-admin:client:coords",
-		/** Server -> client callback: (model) -> CreateVehicleServerSetter type, or null when the model is not a vehicle. */
-		vehicleType: "ai-admin:vehicleType"
+		coords: "ai-admin:client:coords"
 	};
 	/** A teleport target from the server: null (waypoint), a point, or undefined when the value is not one. */
 	function toTeleportPoint(v) {
@@ -1243,17 +1285,11 @@ try{
 	onServerEvent(EVENTS.toggleNoclip, () => void setNoclip(!noclip.on));
 	onServerEvent(EVENTS.openMenu, () => void openMenu());
 	onServerEvent(EVENTS.coords, () => {
-		const [x = 0, y = 0, z = 0] = GetEntityCoords(cache.ped, false);
+		const { x, y, z } = player.coords();
 		const f = (n) => n.toFixed(2);
-		const text = `vector4(${f(x)}, ${f(y)}, ${f(z)}, ${f(GetEntityHeading(cache.ped))})`;
+		const text = `vector4(${f(x)}, ${f(y)}, ${f(z)}, ${f(player.heading())})`;
 		console.log(text);
 		notify(Locale("NOTIFY_COORDS", text), "info", 15e3);
-	});
-	/** The server asks which spawn type a model is; null when the game has no such vehicle. */
-	onServerCallback(EVENTS.vehicleType, (model) => {
-		if (typeof model !== "string") return null;
-		const hash = GetHashKey(model);
-		return IsModelInCdimage(hash) && IsModelAVehicle(hash) ? vehicleTypeOfClass(GetVehicleClassFromName(hash)) : null;
 	});
 	new Keybind({
 		name: "admin_menu",

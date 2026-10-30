@@ -1,5 +1,4 @@
-import { aiLog, isOnline, notify, optionalExport, triggerClientCallback, vehicleKeys } from "@aicore-fivem/lib/server";
-import { waitFor } from "@aicore-fivem/lib/shared";
+import { aiLog, isOnline, notify, optionalExport, spawnVehicle, vehicleType } from "@aicore-fivem/lib/server";
 import { ADMIN, VEHICLE_BAGS } from "@aicore-fivem/shared";
 import { Locale } from "common";
 import { EVENTS, type ErrorKey, type TeleportPoint } from "common/admin";
@@ -19,12 +18,6 @@ const pos = (source: number) => {
 const name = (source: number) => GetPlayerName(String(source)) || String(source);
 const log = (message: string, source: number, target?: number, metadata?: Record<string, unknown>) =>
   aiLog("actions", message, { source: source > 0 ? source : undefined, target, metadata });
-
-/** Vehicle spawn type of a model, asked from the admin's client (null: not a vehicle model). */
-async function vehicleType(source: number, model: string): Promise<string | null> {
-  const answer: unknown = await triggerClientCallback(EVENTS.vehicleType, source, [model]).catch(() => null);
-  return typeof answer === "string" && /^[a-z]{3,12}$/.test(answer) ? answer : null;
-}
 
 function nearestVehicle(source: number, metres: number): number {
   const p = pos(source);
@@ -102,7 +95,7 @@ export const actions = {
   async car(source: number, model: string): Promise<Result> {
     const hashName = model.toLowerCase();
     if (!/^[a-z0-9_]{1,32}$/.test(hashName)) return "ERR_MODEL";
-    const type = await vehicleType(source, hashName);
+    const type = await vehicleType(hashName, source);
     if (!type || !isOnline(source)) return "ERR_MODEL";
     const admin = ped(source);
     const current = GetVehiclePedIsIn(admin, false);
@@ -110,11 +103,9 @@ export const actions = {
     if (current && GetPedInVehicleSeat(current, -1) === admin && Entity(current).state[VEHICLE_BAGS.owned] !== true)
       DeleteEntity(current);
     const p = pos(source);
-    const vehicle = CreateVehicleServerSetter(GetHashKey(hashName), type, p.x, p.y, p.z, GetEntityHeading(admin));
-    if (!(await waitFor(() => DoesEntityExist(vehicle) || undefined, 5000).catch(() => false))) return "ERR_VEHICLE";
-    Entity(vehicle).state.set(VEHICLE_BAGS.fuel, 100, true);
-    SetPedIntoVehicle(admin, vehicle, -1);
-    vehicleKeys.give(source, vehicle, "temporary");
+    const coords = { ...p, heading: GetEntityHeading(admin) };
+    const vehicle = await spawnVehicle({ model: hashName, type, coords, fuel: 100, driver: source, keysTo: source, purpose: "temporary", persistent: false });
+    if (vehicle === null) return "ERR_VEHICLE";
     notify(source, Locale("NOTIFY_CAR_SPAWNED", hashName), "success");
     log("spawned a vehicle", source, undefined, { model: hashName, ...p });
     return null;
