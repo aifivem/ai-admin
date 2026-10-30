@@ -12,6 +12,8 @@ export const EVENTS = {
   players: "ai-admin:players",
   /** Callback: (action: MenuAction, target: number | null, value: string | null) -> { ok, error? } (admins). */
   action: "ai-admin:action",
+  /** Callback: (target: number | null, items: { name, count }[]) -> { ok, error? } gives a picked list (admins). */
+  giveItems: "ai-admin:giveItems",
   /** Server -> admin: () toggle noclip (the /noclip command, checked on the server). */
   toggleNoclip: "ai-admin:client:toggleNoclip",
   /** Server -> player: (point: TeleportPoint | null) move there; no `z` = onto the ground; null = to the waypoint. */

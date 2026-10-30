@@ -98,3 +98,42 @@ onClientCallback(
     return error ? { ok: false, error } : { ok: true };
   },
 );
+
+const parseItems = ([target, list]: unknown[]):
+  | [number | null, Array<{ name: string; count: number }>]
+  | null => {
+  if (
+    target != null &&
+    !(typeof target === "number" && Number.isInteger(target) && target > 0)
+  )
+    return null;
+  if (!Array.isArray(list) || list.length === 0 || list.length > 50)
+    return null;
+  const items = list.flatMap((v: unknown) =>
+    typeof v === "object" &&
+    v !== null &&
+    "name" in v &&
+    "count" in v &&
+    typeof v.name === "string" &&
+    typeof v.count === "number" &&
+    Number.isInteger(v.count)
+      ? [{ name: v.name, count: v.count }]
+      : [],
+  );
+  return items.length === list.length ? [target ?? null, items] : null;
+};
+
+// The item picker's list: given one by one through the same action as a single item; stops at the first refusal.
+onClientCallback(
+  EVENTS.giveItems,
+  { args: parseItems, guards: [isAdmin()], lock: true },
+  (source, target, items) => {
+    const who = target ?? source;
+    if (!isOnline(who)) return { ok: false, error: "ERR_TARGET" };
+    for (const { name, count } of items) {
+      const error = actions.giveItem(source, who, name, count);
+      if (error) return { ok: false, error };
+    }
+    return { ok: true };
+  },
+);

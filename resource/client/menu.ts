@@ -49,11 +49,19 @@ async function spawnVehicle(): Promise<void> {
 const hudExports = () => optionalExport("ai-hud");
 const mapAlways = () => hudExports()?.GetMinimapAlways() === true;
 
-/** The item picker (every item with its picture); each pick asks the server to give it (to a player, else the admin). */
+/** The item picker (every item with its picture, a list capped by the weight limit); Take asks the server for all. */
 export async function giveItem(target: number | null): Promise<void> {
-  await itemPicker({ title: Locale("ITEM_TITLE") }, (name, count) => {
-    void run("item", target, `${name}:${count}`);
+  const items = await itemPicker({
+    title: Locale("ITEM_TITLE"),
+    target: target ?? undefined,
   });
+  if (!items || items.length === 0) return;
+  const error = failure(
+    await triggerServerCallback(EVENTS.giveItems, [target, items]).catch(
+      () => null,
+    ),
+  );
+  if (error) notify(error, "error");
 }
 
 const PLAYER_ACTIONS = [

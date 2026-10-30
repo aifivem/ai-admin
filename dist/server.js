@@ -1006,6 +1006,7 @@ const EVENTS = {
 	noclip: "ai-admin:noclip",
 	players: "ai-admin:players",
 	action: "ai-admin:action",
+	giveItems: "ai-admin:giveItems",
 	toggleNoclip: "ai-admin:client:toggleNoclip",
 	teleport: "ai-admin:client:teleport",
 	openMenu: "ai-admin:client:openMenu",
@@ -1613,4 +1614,29 @@ onClientCallback(EVENTS.action, {
 		ok: !1,
 		error
 	} : { ok: !0 };
+}), onClientCallback(EVENTS.giveItems, {
+	args: ([target, list]) => {
+		if (target != null && !(typeof target == "number" && Number.isInteger(target) && target > 0) || !Array.isArray(list) || list.length === 0 || list.length > 50) return null;
+		let items = list.flatMap((v) => typeof v == "object" && v && "name" in v && "count" in v && typeof v.name == "string" && typeof v.count == "number" && Number.isInteger(v.count) ? [{
+			name: v.name,
+			count: v.count
+		}] : []);
+		return items.length === list.length ? [target ?? null, items] : null;
+	},
+	guards: [isAdmin()],
+	lock: !0
+}, (source, target, items) => {
+	let who = target ?? source;
+	if (!isOnline(who)) return {
+		ok: !1,
+		error: "ERR_TARGET"
+	};
+	for (let { name, count } of items) {
+		let error = actions.giveItem(source, who, name, count);
+		if (error) return {
+			ok: !1,
+			error
+		};
+	}
+	return { ok: !0 };
 }), aiLogChannels({ actions: {} });
