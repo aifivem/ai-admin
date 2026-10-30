@@ -1,4 +1,14 @@
-import { aiLog, EntityState, isOnline, notify, optionalExport, spawnVehicle, stateBoolean, vehicleType } from "@aicore-fivem/lib/server";
+import {
+  aiLog,
+  EntityState,
+  isOnline,
+  nearestVehicleTo,
+  notify,
+  optionalExport,
+  spawnVehicle,
+  stateBoolean,
+  vehicleType,
+} from "@aicore-fivem/lib/server";
 import { ADMIN, VEHICLE_BAGS } from "@aicore-fivem/shared";
 import { Locale } from "common";
 import { EVENTS, type ErrorKey, type TeleportPoint } from "common/admin";
@@ -30,18 +40,6 @@ const log = (
     target,
     metadata,
   });
-
-function nearestVehicle(source: number, metres: number): number {
-  const p = pos(source);
-  let best = 0;
-  let bestDistance = metres;
-  for (const vehicle of GetAllVehicles() as number[]) {
-    const [x = 0, y = 0, z = 0] = GetEntityCoords(vehicle);
-    const d = Math.hypot(x - p.x, y - p.y, z - p.z);
-    if (d < bestDistance) [best, bestDistance] = [vehicle, d];
-  }
-  return best;
-}
 
 export const actions = {
   noclip(source: number): Result {
@@ -142,8 +140,7 @@ export const actions = {
 
   /** Deletes the vehicle the admin sits in, else the closest one within 5 m (an owned one goes to the impound). */
   dv(source: number): Result {
-    const vehicle =
-      GetVehiclePedIsIn(ped(source), false) || nearestVehicle(source, 5);
+    const vehicle = nearestVehicleTo(source, 5);
     if (!vehicle) return "ERR_NO_VEHICLE";
     const metadata = {
       model: GetEntityModel(vehicle),

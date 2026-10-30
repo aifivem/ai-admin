@@ -1,3 +1,4 @@
+import { MENU_BACK } from "@aicore-fivem/shared";
 import {
   input,
   menu,
@@ -53,31 +54,41 @@ const PLAYER_ACTIONS = [
   label: string;
 }>;
 
-/** Everyone online (asked when the list opens), then what to do with the picked player. */
-async function playerMenu(): Promise<void> {
-  const players = toPlayerEntries(
-    await triggerServerCallback(EVENTS.players).catch(() => null),
-  );
-  const picked = await menu({
-    title: Locale("MENU_PLAYERS"),
-    items: players.map((p) => ({
-      id: String(p.id),
-      label: Locale("MENU_PLAYER", p.id, p.name),
-      icon: "user",
-    })),
-  });
-  const player = players.find((p) => String(p.id) === picked);
-  if (!player) return;
-  const action = await menu({
-    title: Locale("MENU_PLAYER", player.id, player.name),
-    items: PLAYER_ACTIONS.map((a) => ({
-      id: a.id,
-      label: Locale(a.label),
-      icon: a.icon,
-    })),
-  });
-  const chosen = PLAYER_ACTIONS.find((a) => a.id === action);
-  if (chosen) await run(chosen.id, player.id);
+/**
+ * Everyone online (asked when the list opens), then what to do with the picked player. Escape goes one menu back
+ * (true = back to the main menu), holding it closes everything.
+ */
+async function playerMenu(): Promise<boolean> {
+  for (;;) {
+    const players = toPlayerEntries(
+      await triggerServerCallback(EVENTS.players).catch(() => null),
+    );
+    const picked = await menu({
+      title: Locale("MENU_PLAYERS"),
+      back: true,
+      items: players.map((p) => ({
+        id: String(p.id),
+        label: Locale("MENU_PLAYER", p.id, p.name),
+        icon: "user",
+      })),
+    });
+    if (picked === MENU_BACK) return true;
+    const player = players.find((p) => String(p.id) === picked);
+    if (!player) return false;
+    const action = await menu({
+      title: Locale("MENU_PLAYER", player.id, player.name),
+      back: true,
+      items: PLAYER_ACTIONS.map((a) => ({
+        id: a.id,
+        label: Locale(a.label),
+        icon: a.icon,
+      })),
+    });
+    if (action === MENU_BACK) continue;
+    const chosen = PLAYER_ACTIONS.find((a) => a.id === action);
+    if (chosen) await run(chosen.id, player.id);
+    return false;
+  }
 }
 
 /** The quick admin menu (F9 or /adminmenu); opens only when the server says the player is an admin. */
@@ -112,7 +123,8 @@ export async function openMenu(): Promise<void> {
     case "car":
       return spawnVehicle();
     case "players":
-      return playerMenu();
+      if (await playerMenu()) return openMenu();
+      return;
     case "tpm":
     case "heal":
     case "revive":
