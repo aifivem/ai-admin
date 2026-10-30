@@ -1,0 +1,10 @@
+{
+  "noclipSpeed": 1,
+  "noclipMaxSpeed": 16,
+  "noclipStep": 0.5,
+  "noclipFast": 2,
+  "noclipFaster": 4,
+  "noclipSlow": 0.05,
+  "announceKind": "warning",
+  "announceSeconds": 10
+}
