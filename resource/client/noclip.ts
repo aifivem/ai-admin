@@ -1,4 +1,10 @@
-import { cache, controls, TickLoop } from "@aicore-fivem/lib/client";
+import {
+  cache,
+  controls,
+  every,
+  type Job,
+  TickLoop,
+} from "@aicore-fivem/lib/client";
 import type { Settings } from "common/admin";
 
 /**
@@ -45,7 +51,7 @@ export class Noclip {
   private speed = 1;
   private camera = 0;
   private readonly frame = new TickLoop(() => this.step());
-  private landing: ReturnType<typeof setInterval> | null = null;
+  private landing: Job | null = null;
   /** Panel values, read once per start (not per frame). */
   private config: Settings;
 
@@ -104,7 +110,7 @@ export class Noclip {
     // Invincible until the fall is over.
     const entity = this.entity;
     const vehicle = this.inVehicle;
-    this.landing = setInterval(() => {
+    this.landing = every(100, () => {
       const down = vehicle
         ? IsVehicleOnAllWheels(entity)
         : !IsPedFalling(entity) && !IsPedRagdoll(entity);
@@ -112,7 +118,7 @@ export class Noclip {
       this.stopLanding();
       SetEntityInvincible(entity, false);
       landed();
-    }, 100);
+    });
   }
 
   /** Resource stop or a teleport: everything back right away. */
@@ -142,7 +148,7 @@ export class Noclip {
   }
 
   private stopLanding(): void {
-    if (this.landing !== null) clearInterval(this.landing);
+    this.landing?.stop();
     this.landing = null;
   }
 
