@@ -681,9 +681,20 @@ function notify(source, text, kind = "info", duration) {
 	};
 	emitNet(CORE.clientNotifyEvent, source, notification);
 }
-resourceExport(CORE.resource);
-// ../../../packages/lib/src/server/online.ts
-const core$4 = resourceExport(CORE.resource);
+// ../../../packages/lib/src/server/inventory.ts
+const core$5 = resourceExport(CORE.resource), inventory = {
+	addItem: (inv, item, count = 1, metadata, slot) => core$5.AddItem(inv, item, count, metadata, slot),
+	removeItem: (inv, item, count = 1, metadata, slot) => core$5.RemoveItem(inv, item, count, metadata, slot),
+	getItemCount: (inv, item, metadata) => core$5.GetItemCount(inv, item, metadata),
+	hasItem: (inv, item, count = 1) => core$5.HasItem(inv, item, count),
+	canCarryItem: (inv, item, count = 1, metadata) => core$5.CanCarryItem(inv, item, count, metadata),
+	getItems: (inv) => core$5.GetItems(inv),
+	clearInventory: (inv) => core$5.ClearInventory(inv),
+	registerStash: (name, label, slots, maxWeight, jobs = []) => core$5.RegisterStash(name, label, slots, maxWeight, jobs),
+	openInventory: (source, inv) => core$5.OpenInventory(source, inv),
+	registerUsableItem: (name, handler) => core$5.RegisterUsableItem(name, handler),
+	getItemDefinition: (name) => core$5.GetItemDefinition(name)
+}, core$4 = resourceExport(CORE.resource);
 var OnlinePlayers = class {
 	players = new Map();
 	onDuty = new Map();
@@ -998,7 +1009,9 @@ const EVENTS = {
 	"dv",
 	"goto",
 	"bring",
-	"panel"
+	"panel",
+	"item",
+	"inventory"
 ], isMenuAction = (v) => typeof v == "string" && MENU_ACTIONS.includes(v), KINDS = [
 	"info",
 	"success",
@@ -1246,7 +1259,7 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		y,
 		z
 	};
-}, name = (source) => GetPlayerName(String(source)) || String(source), log$1 = (message, source, target, metadata) => aiLog("actions", message, {
+}, name = (source) => GetPlayerName(String(source)) || String(source), targetName = (target) => `${name(target)} (${target})`, log$1 = (message, source, target, metadata) => aiLog("actions", message, {
 	source: source > 0 ? source : void 0,
 	target,
 	metadata
@@ -1327,6 +1340,28 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 	announce(source, text) {
 		let { announceKind, announceSeconds } = content.settings;
 		return notify(-1, Locale("NOTIFY_ANNOUNCE", text), announceKind, announceSeconds * 1e3), log$1("announced", source, void 0, { text }), null;
+	},
+	giveItem(source, target, item, count) {
+		let name = item.toLowerCase();
+		return !/^[a-z0-9_-]{1,48}$/.test(name) || !inventory.getItemDefinition(name) ? "ERR_ITEM" : !Number.isInteger(count) || count < 1 || count > 1e4 ? "ERR_COUNT" : inventory.addItem(target, name, count) ? (notify(source, Locale("NOTIFY_ITEM_GIVEN", count, name, targetName(target)), "success"), log$1("gave an item", source, target, {
+			item: name,
+			count
+		}), null) : "ERR_ITEM_FULL";
+	},
+	removeItem(source, target, item, count) {
+		let name = item.toLowerCase(), has = inventory.getItemCount(target, name);
+		if (has <= 0) return "ERR_ITEM_NONE";
+		let take = count > 0 ? Math.min(count, has) : has;
+		return inventory.removeItem(target, name, take) ? (notify(source, Locale("NOTIFY_ITEM_REMOVED", take, name, targetName(target)), "success"), log$1("removed an item", source, target, {
+			item: name,
+			count: take
+		}), null) : "ERR_ITEM_NONE";
+	},
+	clearInventory(source, target) {
+		return inventory.clearInventory(target), notify(source, Locale("NOTIFY_INVENTORY_CLEARED", targetName(target)), "success"), log$1("cleared an inventory", source, target), null;
+	},
+	openInventory(source, target) {
+		return source <= 0 ? "ERR_PLAYER_ONLY" : inventory.openInventory(source, target) ? (log$1("opened an inventory", source, target), null) : "ERR_INVENTORY";
 	}
 }, log = createLogger(ResourceName);
 function reply(source, error) {
@@ -1461,7 +1496,50 @@ addCommand("weather", {
 		help: Locale("COMMAND_P_ON")
 	}],
 	restricted: !0
-}, (source, args) => done(source, world.freezeTime(args.on === 1), Locale(args.on === 1 ? "NOTIFY_FREEZE_ON" : "NOTIFY_FREEZE_OFF"))), onClientCallback(EVENTS.access, (source) => !!IsPlayerAceAllowed(String(source), ADMIN.ace)), onClientCallback(EVENTS.noclip, { args: ([on]) => typeof on == "boolean" ? [on] : null }, (source, on) => on && !IsPlayerAceAllowed(String(source), ADMIN.ace) ? {
+}, (source, args) => done(source, world.freezeTime(args.on === 1), Locale(args.on === 1 ? "NOTIFY_FREEZE_ON" : "NOTIFY_FREEZE_OFF")));
+const itemParams = [
+	{
+		name: "id",
+		type: "playerId",
+		help: Locale("COMMAND_P_ID")
+	},
+	{
+		name: "item",
+		type: "string",
+		help: Locale("COMMAND_P_ITEM")
+	},
+	{
+		name: "count",
+		type: "number",
+		help: Locale("COMMAND_P_COUNT"),
+		optional: !0
+	}
+];
+addCommand("giveitem", {
+	help: Locale("COMMAND_GIVEITEM"),
+	restricted: !0,
+	params: itemParams
+}, (source, args) => answer(source, actions.giveItem(source, args.id, args.item, args.count ?? 1))), addCommand("removeitem", {
+	help: Locale("COMMAND_REMOVEITEM"),
+	restricted: !0,
+	params: itemParams
+}, (source, args) => answer(source, actions.removeItem(source, args.id, args.item, args.count ?? 0))), addCommand("clearinv", {
+	help: Locale("COMMAND_CLEARINV"),
+	restricted: !0,
+	params: [{
+		name: "id",
+		type: "playerId",
+		help: Locale("COMMAND_P_ID")
+	}]
+}, (source, args) => answer(source, actions.clearInventory(source, args.id))), addCommand("openinv", {
+	help: Locale("COMMAND_OPENINV"),
+	restricted: !0,
+	params: [{
+		name: "id",
+		type: "playerId",
+		help: Locale("COMMAND_P_ID")
+	}]
+}, (source, args) => answer(source, actions.openInventory(source, args.id))), onClientCallback(EVENTS.access, (source) => !!IsPlayerAceAllowed(String(source), ADMIN.ace)), onClientCallback(EVENTS.noclip, { args: ([on]) => typeof on == "boolean" ? [on] : null }, (source, on) => on && !IsPlayerAceAllowed(String(source), ADMIN.ace) ? {
 	ok: !1,
 	error: "ERR_NOT_ALLOWED"
 } : (aiLog("actions", on ? "noclip on" : "noclip off", { source }), { ok: !0 })), onClientCallback(EVENTS.players, () => getPlayers().map((p) => ({
@@ -1474,7 +1552,7 @@ addCommand("weather", {
 		windowMs: 1e3
 	}
 });
-const parseAction = ([action, target, value]) => !isMenuAction(action) || target != null && !(typeof target == "number" && Number.isInteger(target) && target > 0) || value != null && !(typeof value == "string" && value.length <= 32) ? null : [
+const parseAction = ([action, target, value]) => !isMenuAction(action) || target != null && !(typeof target == "number" && Number.isInteger(target) && target > 0) || value != null && !(typeof value == "string" && value.length <= 64) ? null : [
 	action,
 	target ?? null,
 	value ?? null
@@ -1491,6 +1569,11 @@ function runAction(source, action, target, value) {
 		case "goto": return actions.goto(source, who);
 		case "bring": return actions.bring(source, who);
 		case "panel": return actions.panel(source);
+		case "item": {
+			let [item = "", count = "1"] = (value ?? "").split(":");
+			return actions.giveItem(source, who, item, Number(count));
+		}
+		case "inventory": return actions.openInventory(source, who);
 		default: return action;
 	}
 }

@@ -3,6 +3,7 @@ import {
   input,
   menu,
   notify,
+  optionalExport,
   triggerServerCallback,
 } from "@aicore-fivem/lib/client";
 import { Locale } from "common";
@@ -43,11 +44,45 @@ async function spawnVehicle(): Promise<void> {
     await run("car", null, model.trim());
 }
 
+/** ai-hud's admin minimap toggle (the minimap on foot whatever the panel says), while ai-hud runs. */
+const hudExports = () => optionalExport("ai-hud");
+const mapAlways = () => hudExports()?.GetMinimapAlways() === true;
+
+/** Item name and count; the server checks the item exists and gives it (to a player, else the admin). */
+async function giveItem(target: number | null): Promise<void> {
+  const values = await input({
+    title: Locale("ITEM_TITLE"),
+    confirm: Locale("ITEM_CONFIRM"),
+    fields: [
+      {
+        name: "item",
+        label: Locale("ITEM_NAME"),
+        type: "text",
+        maxLength: 48,
+        placeholder: "water",
+      },
+      {
+        name: "count",
+        label: Locale("ITEM_COUNT"),
+        type: "number",
+        min: 1,
+        max: 10_000,
+      },
+    ],
+  });
+  const item = values?.item;
+  const count = values?.count;
+  if (typeof item === "string" && item.trim() && typeof count === "number")
+    await run("item", target, `${item.trim()}:${Math.floor(count)}`);
+}
+
 const PLAYER_ACTIONS = [
   { id: "goto", icon: "location-dot", label: "MENU_GOTO" },
   { id: "bring", icon: "hand-pointer", label: "MENU_BRING" },
   { id: "heal", icon: "heart-pulse", label: "MENU_HEAL" },
   { id: "revive", icon: "user", label: "MENU_REVIVE" },
+  { id: "item", icon: "box", label: "MENU_GIVE_ITEM" },
+  { id: "inventory", icon: "box-open", label: "MENU_OPEN_INVENTORY" },
 ] as const satisfies ReadonlyArray<{
   id: MenuAction;
   icon: string;
@@ -86,7 +121,8 @@ async function playerMenu(): Promise<boolean> {
     });
     if (action === MENU_BACK) continue;
     const chosen = PLAYER_ACTIONS.find((a) => a.id === action);
-    if (chosen) await run(chosen.id, player.id);
+    if (chosen?.id === "item") await giveItem(player.id);
+    else if (chosen) await run(chosen.id, player.id);
     return false;
   }
 }
@@ -113,11 +149,26 @@ export async function openMenu(): Promise<void> {
       { id: "revive", label: Locale("MENU_REVIVE_SELF"), icon: "user" },
       { id: "car", label: Locale("MENU_CAR"), icon: "car" },
       { id: "dv", label: Locale("MENU_DV"), icon: "car-rear" },
+      { id: "item", label: Locale("MENU_GIVE_ITEM"), icon: "box" },
       { id: "players", label: Locale("MENU_PLAYERS"), icon: "users" },
+      ...(hudExports()
+        ? [
+            {
+              id: "map",
+              label: Locale(mapAlways() ? "MENU_MAP_OFF" : "MENU_MAP_ON"),
+              icon: "map",
+            },
+          ]
+        : []),
       { id: "panel", label: Locale("MENU_PANEL"), icon: "sliders" },
     ],
   });
   switch (picked) {
+    case "map":
+      hudExports()?.SetMinimapAlways(!mapAlways());
+      return;
+    case "item":
+      return giveItem(null);
     case "noclip":
       return setNoclip(!noclip.on);
     case "car":

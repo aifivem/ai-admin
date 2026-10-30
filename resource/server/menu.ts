@@ -47,7 +47,7 @@ const parseAction = ([action, target, value]: unknown[]):
     !(typeof target === "number" && Number.isInteger(target) && target > 0)
   )
     return null;
-  if (value != null && !(typeof value === "string" && value.length <= 32))
+  if (value != null && !(typeof value === "string" && value.length <= 64))
     return null;
   return [action, target ?? null, value ?? null];
 };
@@ -77,6 +77,12 @@ function runAction(
       return actions.bring(source, who);
     case "panel":
       return actions.panel(source);
+    case "item": {
+      const [item = "", count = "1"] = (value ?? "").split(":");
+      return actions.giveItem(source, who, item, Number(count));
+    }
+    case "inventory":
+      return actions.openInventory(source, who);
     default: {
       const _exhaustive: never = action;
       return _exhaustive;

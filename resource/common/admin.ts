@@ -32,6 +32,8 @@ export const MENU_ACTIONS = [
   "goto",
   "bring",
   "panel",
+  "item",
+  "inventory",
 ] as const;
 export type MenuAction = (typeof MENU_ACTIONS)[number];
 export const isMenuAction = (v: unknown): v is MenuAction =>

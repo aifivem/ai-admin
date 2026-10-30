@@ -1,5 +1,6 @@
 import {
   AdminWorld,
+  keyHints,
   loadLocaleTexts,
   notify,
   triggerServerCallback,
@@ -28,8 +29,26 @@ const reportNoclip = (on: boolean) =>
   triggerServerCallback(EVENTS.noclip, [on]).catch(() => null);
 
 /** Noclip on asks the server first (admins only); off is always allowed and reported once the player landed. */
+/** The noclip controls in the HUD's key hints while flying. */
+const NOCLIP_HINTS = [
+  ["WASD", "HINT_NOCLIP_MOVE"],
+  ["Q/E", "HINT_NOCLIP_UPDOWN"],
+  ["SHIFT", "HINT_NOCLIP_FAST"],
+  ["CTRL", "HINT_NOCLIP_SLOW"],
+  ["SPACE", "HINT_NOCLIP_GROUND"],
+  ["V", "HINT_NOCLIP_VIEW"],
+] as const;
+function noclipHints(on: boolean): void {
+  NOCLIP_HINTS.forEach(([key, label], i) =>
+    on
+      ? keyHints.show(`noclip${i}`, { key, label: Locale(label) })
+      : keyHints.hide(`noclip${i}`),
+  );
+}
+
 export async function setNoclip(on: boolean): Promise<void> {
   if (!on) {
+    noclipHints(false);
     noclip.stop(() => void reportNoclip(false));
     notify(Locale("NOTIFY_NOCLIP_OFF"), "info");
     return;
@@ -37,6 +56,7 @@ export async function setNoclip(on: boolean): Promise<void> {
   const error = failure(await reportNoclip(true));
   if (error) return notify(error, "error");
   noclip.start();
+  noclipHints(true);
   notify(Locale("NOTIFY_NOCLIP_ON"), "success");
 }
 
@@ -44,6 +64,7 @@ export async function setNoclip(on: boolean): Promise<void> {
 export async function teleport(point: TeleportPoint | null): Promise<void> {
   if (noclip.on) {
     noclip.reset();
+    noclipHints(false);
     void reportNoclip(false);
   }
   if (point) return teleportTo(point.x, point.y, point.z);

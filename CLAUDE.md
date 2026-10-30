@@ -9,6 +9,8 @@ Admin tools: noclip, teleports (waypoint, coordinates, to / from players), heal 
 - `weather`, `time`, `blackout`, `freezetime` go through ai-core's world layer (lib `world`), so they work with any weather script that answers the qb-weathersync contract.
 - Commands and menu run the same functions (`server/actions.ts`), which return an `ERR_*` lang key or null and log what they changed on channel `actions`.
 - Vehicles come from lib `spawnVehicle` with key purpose `temporary`; lib `vehicleType(model, admin)` checks the model first (ai-core's client answers), before the admin's old car is deleted.
+- Item commands (`giveitem`, `removeitem`, `clearinv`, `openinv`) and the menu's item / inventory player actions go through lib `inventory`, so they work with any inventory ai-core adapts.
+- Noclip shows its keys on the HUD's key hints (lib `keyHints`) while it runs. The menu's "always show map" toggle calls ai-hud's `SetMinimapAlways` (optional export).
 - Lang keys: `ADMIN_*` are panel texts only; game texts use `ERR_`, `NOTIFY_`, `MENU_`, `CAR_`, `COMMAND_`, `KEYBIND_` (ai-core's generic panel texts also start with `ADMIN_`).
 
 ## Contracts
