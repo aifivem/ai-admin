@@ -5,6 +5,13 @@ import {
   onClientCallback,
   world,
 } from "@aicore-fivem/lib/server";
+import {
+  fail,
+  isRecord,
+  readId,
+  readInt,
+  readText,
+} from "@aicore-fivem/lib/shared";
 import { ADMIN } from "@aicore-fivem/shared";
 import {
   EVENTS,
@@ -27,7 +34,7 @@ onClientCallback(
   { args: ([on]) => (typeof on === "boolean" ? [on] : null) },
   (source, on) => {
     if (on && !IsPlayerAceAllowed(String(source), ADMIN.ace))
-      return { ok: false, error: "ERR_NOT_ALLOWED" };
+      return fail("ERR_NOT_ALLOWED");
     aiLog("actions", on ? "noclip on" : "noclip off", { source });
     return { ok: true };
   },
@@ -51,14 +58,11 @@ onClientCallback(
 const parseAction = ([action, target, value]: unknown[]):
   [MenuAction, number | null, string | null] | null => {
   if (!isMenuAction(action)) return null;
-  if (
-    target != null &&
-    !(typeof target === "number" && Number.isInteger(target) && target > 0)
-  )
-    return null;
+  const id = target == null ? null : readId(target);
+  if (target != null && id === null) return null;
   if (value != null && !(typeof value === "string" && value.length <= 300))
     return null;
-  return [action, target ?? null, value ?? null];
+  return [action, id, value ?? null];
 };
 
 function runAction(
@@ -118,31 +122,22 @@ onClientCallback(
   { args: parseAction, guards: [isAdmin()], lock: true },
   async (source, action, target, value) => {
     const error = await runAction(source, action, target, value);
-    return error ? { ok: false, error } : { ok: true };
+    return error ? fail(error) : { ok: true };
   },
 );
 
 const parseItems = ([target, list]: unknown[]):
   [number | null, Array<{ name: string; count: number }>] | null => {
-  if (
-    target != null &&
-    !(typeof target === "number" && Number.isInteger(target) && target > 0)
-  )
-    return null;
+  const id = target == null ? null : readId(target);
+  if (target != null && id === null) return null;
   if (!Array.isArray(list) || list.length === 0 || list.length > 50)
     return null;
-  const items = list.flatMap((v: unknown) =>
-    typeof v === "object" &&
-    v !== null &&
-    "name" in v &&
-    "count" in v &&
-    typeof v.name === "string" &&
-    typeof v.count === "number" &&
-    Number.isInteger(v.count)
-      ? [{ name: v.name, count: v.count }]
-      : [],
-  );
-  return items.length === list.length ? [target ?? null, items] : null;
+  const items = list.flatMap((v: unknown) => {
+    const name = isRecord(v) ? readText(v.name, 64) : null;
+    const count = isRecord(v) ? readInt(v.count, 1, 1_000_000) : null;
+    return name !== null && count !== null ? [{ name, count }] : [];
+  });
+  return items.length === list.length ? [id, items] : null;
 };
 
 // The item picker's list: given one by one through the same action as a single item; stops at the first refusal.
@@ -151,10 +146,10 @@ onClientCallback(
   { args: parseItems, guards: [isAdmin()], lock: true },
   (source, target, items) => {
     const who = target ?? source;
-    if (!isOnline(who)) return { ok: false, error: "ERR_TARGET" };
+    if (!isOnline(who)) return fail("ERR_TARGET");
     for (const { name, count } of items) {
       const error = actions.giveItem(source, who, name, count);
-      if (error) return { ok: false, error };
+      if (error) return fail(error);
     }
     return { ok: true };
   },

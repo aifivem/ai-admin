@@ -58,8 +58,21 @@ function str(value, fallback, max = 64) {
 function record(value) {
 	return typeof value == "object" && value && !Array.isArray(value) ? value : {};
 }
-// ../../../packages/lib/src/shared/records.ts
-const isObject = (value) => typeof value == "object" && !!value && !Array.isArray(value);
+// ../../../packages/lib/src/shared/strict.ts
+function readInt(value, min, max) {
+	return Number.isInteger(value) && value >= min && value <= max ? value : null;
+}
+const readId = (value) => readInt(value, 1, 2147483647);
+function readText(value, max) {
+	if (typeof value != "string") return null;
+	let text = value.trim();
+	return text ? text.slice(0, max) : null;
+}
+// ../../../packages/lib/src/shared/action.ts
+const fail = (error) => ({
+	ok: !1,
+	error
+}), isObject = (value) => typeof value == "object" && !!value && !Array.isArray(value);
 function readRecords(raw, readOne) {
 	let out = new Map();
 	if (!isObject(raw)) return out;
@@ -226,7 +239,7 @@ const CORE = {
 	clientPlayerLoadedEvent: "ai-core:client:playerLoaded",
 	clientPlayerUnloadedEvent: "ai-core:client:playerUnloaded",
 	clientCharacterPortraitEvent: "ai-core:client:characterPortrait",
-	clientCharacterLookEvent: "ai-core:client:characterLook",
+	characterLooksEvent: "ai-core:client:characterLooks",
 	clientPromptPressedEvent: "ai-core:client:promptPressed",
 	clientCacheEvent: "ai-core:client:cache",
 	clientHudVisibleEvent: "ai-core:client:hudVisible",
@@ -255,7 +268,23 @@ const CORE = {
 	props: "ai:props",
 	setup: "ai:setup",
 	fuel: "fuel"
-}, named = new Set();
+}, WEATHERS = [
+	"EXTRASUNNY",
+	"CLEAR",
+	"NEUTRAL",
+	"SMOG",
+	"FOGGY",
+	"OVERCAST",
+	"CLOUDS",
+	"CLEARING",
+	"RAIN",
+	"THUNDER",
+	"SNOW",
+	"BLIZZARD",
+	"SNOWLIGHT",
+	"XMAS",
+	"HALLOWEEN"
+], WEATHER_SET = new Set(WEATHERS), isWeather = (value) => typeof value == "string" && WEATHER_SET.has(value), named = new Set();
 function registerExport(name, handler) {
 	named.add(name), globalThis.exports(name, handler);
 	let first = name.charAt(0), twin = (first === first.toUpperCase() ? first.toLowerCase() : first.toUpperCase()) + name.slice(1);
@@ -293,6 +322,16 @@ function loadLocaleTexts(resource = GetCurrentResourceName()) {
 }
 // ../../../packages/lib/src/fivem/callbackNames.ts
 const requestEvent = (name) => `aicore:cb:${name}`, responseEvent = (resource) => `aicore:cbr:${resource}`;
+// ../../../packages/lib/src/server/position.ts
+function entityCoords(entity) {
+	let [x = 0, y = 0, z = 0] = GetEntityCoords(entity);
+	return {
+		x,
+		y,
+		z
+	};
+}
+const coordsOf = (source) => entityCoords(GetPlayerPed(String(source)));
 resourceExport(CORE.resource);
 const log$8 = createLogger(GetCurrentResourceName()), isAdmin = (ace = ADMIN.ace) => (source) => !!IsPlayerAceAllowed(String(source), ace) || `not allowed (${ace})`, gates = new Set();
 on("playerDropped", () => {
@@ -417,7 +456,7 @@ function toPatch(value) {
 		default: return null;
 	}
 }
-const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$14 = resourceExport(CORE.resource), ERR = {
+const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$15 = resourceExport(CORE.resource), ERR = {
 	type: "ADMIN_ERR_TYPE",
 	range: "ADMIN_ERR_RANGE",
 	length: "ADMIN_ERR_LENGTH",
@@ -431,7 +470,7 @@ const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(va
 		if (cached && Date.now() - cached.at < 2e3) return cached.values.size > 0 ? cached.values : null;
 		let list = [];
 		try {
-			list = core$14.GetLookupValues(source);
+			list = core$15.GetLookupValues(source);
 		} catch {}
 		let values = new Set(Array.isArray(list) ? list.filter((v) => typeof v == "string") : []);
 		return this.lists.set(source, {
@@ -634,7 +673,7 @@ function writeSchema(resource, name, text, log) {
 	(0, node_fs_promises.mkdir)(dir, { recursive: !0 }).then(() => (0, node_fs_promises.writeFile)(`${dir}/${name}.schema.json`, text, "utf8")).catch((error) => log.error(`writing ${resource}/${path} failed`, error));
 }
 // ../../../packages/lib/src/server/admin/panel.ts
-const core$13 = resourceExport(CORE.resource), DEFAULT_KEY = "^[a-z0-9_]{2,32}$";
+const core$14 = resourceExport(CORE.resource), DEFAULT_KEY = "^[a-z0-9_]{2,32}$";
 function imported(spec, value) {
 	let base = clone(spec.newRecord ?? {}), out = {};
 	for (let name of Object.keys(spec.sections)) {
@@ -658,7 +697,7 @@ var AdminPanel = class {
 	constructor(schema) {
 		this.schema = schema;
 		for (let [name, spec] of Object.entries(schema.files)) this.load(name, spec);
-		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges)), setImmediate(() => core$13.RegisterAdminPanel(this.resource));
+		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges)), setImmediate(() => core$14.RegisterAdminPanel(this.resource));
 	}
 	get(file) {
 		return this.data.get(file) ?? {};
@@ -792,7 +831,7 @@ var AdminPanel = class {
 		let spec = this.schema.files[file], data = this.get(file), value = key === void 0 ? data : data[key] ?? null;
 		this.dataFiles.get(file)?.write(data), this.views.changed(file, key, value);
 		for (let handler of this.handlers.get(file) ?? []) handler(key, value);
-		if (core$13.AdminPanelChanged({
+		if (core$14.AdminPanelChanged({
 			resource: this.resource,
 			file,
 			key,
@@ -830,19 +869,19 @@ function notify(source, text, kind = "info", duration) {
 	emitNet(CORE.clientNotifyEvent, source, notification);
 }
 // ../../../packages/lib/src/server/inventory.ts
-const core$12 = resourceExport(CORE.resource), inventory = {
-	addItem: (inv, item, count = 1, metadata, slot) => core$12.AddItem(inv, item, count, metadata, slot),
-	removeItem: (inv, item, count = 1, metadata, slot) => core$12.RemoveItem(inv, item, count, metadata, slot),
-	getItemCount: (inv, item, metadata) => core$12.GetItemCount(inv, item, metadata),
-	hasItem: (inv, item, count = 1) => core$12.HasItem(inv, item, count),
-	canCarryItem: (inv, item, count = 1, metadata) => core$12.CanCarryItem(inv, item, count, metadata),
-	getItems: (inv) => core$12.GetItems(inv),
-	clearInventory: (inv) => core$12.ClearInventory(inv),
-	registerStash: (name, label, slots, maxWeight, jobs = []) => core$12.RegisterStash(name, label, slots, maxWeight, jobs),
-	openInventory: (source, inv) => core$12.OpenInventory(source, inv),
-	registerUsableItem: (name, handler) => core$12.RegisterUsableItem(name, handler),
-	getItemDefinition: (name) => core$12.GetItemDefinition(name)
-}, core$11 = resourceExport(CORE.resource);
+const core$13 = resourceExport(CORE.resource), inventory = {
+	addItem: (inv, item, count = 1, metadata, slot) => core$13.AddItem(inv, item, count, metadata, slot),
+	removeItem: (inv, item, count = 1, metadata, slot) => core$13.RemoveItem(inv, item, count, metadata, slot),
+	getItemCount: (inv, item, metadata) => core$13.GetItemCount(inv, item, metadata),
+	hasItem: (inv, item, count = 1) => core$13.HasItem(inv, item, count),
+	canCarryItem: (inv, item, count = 1, metadata) => core$13.CanCarryItem(inv, item, count, metadata),
+	getItems: (inv) => core$13.GetItems(inv),
+	clearInventory: (inv) => core$13.ClearInventory(inv),
+	registerStash: (name, label, slots, maxWeight, jobs = []) => core$13.RegisterStash(name, label, slots, maxWeight, jobs),
+	openInventory: (source, inv) => core$13.OpenInventory(source, inv),
+	registerUsableItem: (name, handler) => core$13.RegisterUsableItem(name, handler),
+	getItemDefinition: (name) => core$13.GetItemDefinition(name)
+}, core$12 = resourceExport(CORE.resource);
 var OnlinePlayers = class {
 	players = new Map();
 	onDuty = new Map();
@@ -851,7 +890,7 @@ var OnlinePlayers = class {
 		if (this.started) return;
 		this.started = !0;
 		let load = (source, character) => {
-			this.put(source, character, (core$11.GetJobs(source) ?? []).map((m) => m.job), (core$11.GetGangs(source) ?? []).map((m) => m.gang)), this.setDuty(source, core$11.GetDutyJob(source));
+			this.put(source, character, (core$12.GetJobs(source) ?? []).map((m) => m.job), (core$12.GetGangs(source) ?? []).map((m) => m.gang)), this.setDuty(source, core$12.GetDutyJob(source));
 		};
 		on(CORE.playerLoadedEvent, load), on(CORE.playerUnloadedEvent, (source) => this.drop(source)), on(CORE.jobsChangedEvent, (source, jobs) => {
 			let player = this.players.get(source);
@@ -860,8 +899,8 @@ var OnlinePlayers = class {
 			let player = this.players.get(source);
 			player && (player.gangs = gangs.map((m) => m.gang));
 		}), on(CORE.dutyChangedEvent, (source, job) => this.setDuty(source, job));
-		for (let source of core$11.GetLoadedSources()) {
-			let character = core$11.GetCharacter(source);
+		for (let source of core$12.GetLoadedSources()) {
+			let character = core$12.GetCharacter(source);
 			character && load(source, character);
 		}
 	}
@@ -907,10 +946,10 @@ var OnlinePlayers = class {
 const EMPTY = new Set();
 new OnlinePlayers();
 // ../../../packages/lib/src/server/vehicleKeys.ts
-const core$10 = resourceExport(CORE.resource), vehicleKeys = {
-	give: (source, vehicle, purpose = "temporary") => core$10.GiveVehicleKeys(source, vehicle, purpose),
-	remove: (source, vehicle) => core$10.RemoveVehicleKeys(source, vehicle),
-	has: (source, vehicle) => core$10.HasVehicleKeys(source, vehicle)
+const core$11 = resourceExport(CORE.resource), vehicleKeys = {
+	give: (source, vehicle, purpose = "temporary") => core$11.GiveVehicleKeys(source, vehicle, purpose),
+	remove: (source, vehicle) => core$11.RemoveVehicleKeys(source, vehicle),
+	has: (source, vehicle) => core$11.HasVehicleKeys(source, vehicle)
 }, TYPES = new Set([
 	"automobile",
 	"bike",
@@ -935,8 +974,14 @@ async function seatPlayer(vehicle, source, seat) {
 		SetPedIntoVehicle(ped, vehicle, seat);
 	}, 2e3, 150).catch(() => !1) : !1;
 }
-function randomPlate() {
-	let digit = () => String(Math.floor(Math.random() * 10)), letter = () => "ABCDEFGHJKLMNPRSTUVWXYZ"[Math.floor(Math.random() * 23)] ?? "A";
+function randomPlate(prefix) {
+	let digit = () => String(Math.floor(Math.random() * 10));
+	if (prefix !== void 0) {
+		let plate = prefix.slice(0, 8);
+		for (; plate.length < 8;) plate += digit();
+		return plate;
+	}
+	let letter = () => "ABCDEFGHJKLMNPRSTUVWXYZ"[Math.floor(Math.random() * 23)] ?? "A";
 	return `${digit()}${digit()}${letter()}${letter()}${letter()}${digit()}${digit()}${digit()}`;
 }
 async function spawnVehicle(options) {
@@ -1132,15 +1177,23 @@ var Mirror = class {
 	}
 };
 // ../../../packages/lib/src/server/world.ts
-const core$8 = resourceExport(CORE.resource), world = {
-	getWeather: () => core$8.GetWeather(),
-	setWeather: (type) => core$8.SetWeather(type),
-	getTime: () => core$8.GetTime(),
-	setTime: (hour, minute = 0) => core$8.SetTime(hour, minute),
-	setBlackout: (on) => core$8.SetBlackout(on),
-	freezeTime: (on) => core$8.FreezeTime(on)
+const core$9 = resourceExport(CORE.resource), world = {
+	getWeather: () => core$9.GetWeather(),
+	setWeather: (type) => core$9.SetWeather(type),
+	getTime: () => core$9.GetTime(),
+	setTime: (hour, minute = 0) => core$9.SetTime(hour, minute),
+	setBlackout: (on) => core$9.SetBlackout(on),
+	freezeTime: (on) => core$9.FreezeTime(on)
 };
-resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
+resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
+// ../../../packages/lib/src/server/medical.ts
+const core$4 = resourceExport(CORE.resource), medical = {
+	revive: (source) => core$4.RevivePlayer(source),
+	heal: (source) => core$4.HealPlayer(source),
+	isDead: (source) => core$4.IsPlayerDead(source),
+	provider: () => core$4.GetMedicalSystem()
+};
+resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/index.ts
 function isOnline(source) {
 	return !!GetPlayerName(String(source));
@@ -1195,23 +1248,7 @@ function readSettings(raw) {
 	};
 }
 // resource/common/controls.ts
-const WEATHERS = [
-	"EXTRASUNNY",
-	"CLEAR",
-	"NEUTRAL",
-	"SMOG",
-	"FOGGY",
-	"OVERCAST",
-	"CLOUDS",
-	"CLEARING",
-	"RAIN",
-	"THUNDER",
-	"SNOW",
-	"BLIZZARD",
-	"SNOWLIGHT",
-	"XMAS",
-	"HALLOWEEN"
-], isWeather = (v) => typeof v == "string" && WEATHERS.includes(v), NOTIFY_KINDS = [
+const NOTIFY_KINDS = [
 	"info",
 	"success",
 	"warning",
@@ -1223,10 +1260,8 @@ function readControls(raw) {
 		announceText: str(c.announceText, "", 300),
 		announceKind: NOTIFY_KINDS.find((k) => k === c.announceKind) ?? "warning",
 		announceSeconds: int(c.announceSeconds, 10, 2, 60),
-		announceSend: bool(c.announceSend, !1),
 		warnPlayer: str(c.warnPlayer, "", 64),
 		warnReason: str(c.warnReason, "", 300),
-		warnSend: bool(c.warnSend, !1),
 		weather: isWeather(c.weather) ? c.weather : "",
 		hour: int(c.hour, 12, 0, 23),
 		minute: int(c.minute, 0, 0, 59),
@@ -1254,7 +1289,6 @@ const CONTROLS_FILE = {
 			max: 60,
 			integer: !0
 		},
-		announceSend: { type: "bool" },
 		warnPlayer: {
 			type: "text",
 			min: 0,
@@ -1266,7 +1300,6 @@ const CONTROLS_FILE = {
 			min: 0,
 			max: 300
 		},
-		warnSend: { type: "bool" },
 		weather: {
 			type: "enum",
 			values: ["", ...WEATHERS]
@@ -1290,10 +1323,8 @@ const CONTROLS_FILE = {
 		announceText: "",
 		announceKind: "warning",
 		announceSeconds: 10,
-		announceSend: !1,
 		warnPlayer: "",
 		warnReason: "",
-		warnSend: !1,
 		weather: "",
 		hour: 12,
 		minute: 0,
@@ -1353,10 +1384,13 @@ const CONTROLS_FILE = {
 				unit: "s"
 			},
 			{
-				widget: "switch",
+				widget: "action",
 				path: "announceSend",
 				label: "ADMIN_F_ANNOUNCE_SEND",
-				hint: "ADMIN_H_ANNOUNCE_SEND"
+				hint: "ADMIN_H_ANNOUNCE_SEND",
+				button: "ADMIN_B_ANNOUNCE_SEND",
+				icon: "comments",
+				confirm: "ADMIN_Q_ANNOUNCE_SEND"
 			}
 		]
 	}, {
@@ -1380,10 +1414,13 @@ const CONTROLS_FILE = {
 				placeholder: "ADMIN_P_WARN_REASON"
 			},
 			{
-				widget: "switch",
+				widget: "action",
 				path: "warnSend",
 				label: "ADMIN_F_WARN_SEND",
-				hint: "ADMIN_H_WARN_SEND"
+				hint: "ADMIN_H_WARN_SEND",
+				button: "ADMIN_B_WARN_SEND",
+				icon: "triangle-exclamation",
+				danger: !0
 			}
 		]
 	}]
@@ -1606,11 +1643,14 @@ const CONTROLS_FILE = {
 			]
 		}]
 	}, ...CONTROLS_TABS]
-}), content = {
-	settings: readSettings(panel.get("settings")),
-	controls: readControls(panel.get("controls"))
+}), settings = panel.view("settings", readSettings), controls = panel.view("controls", readControls), content = {
+	get settings() {
+		return settings.value;
+	},
+	get controls() {
+		return controls.value;
+	}
 };
-panel.onChange("settings", () => content.settings = readSettings(panel.get("settings"))), panel.onChange("controls", () => content.controls = readControls(panel.get("controls")));
 function commitControls(change) {
 	let current = panel.get("controls");
 	Object.entries(change).every(([k, v]) => current[k] === v) || panel.commit("controls", void 0, {
@@ -1619,14 +1659,7 @@ function commitControls(change) {
 	});
 }
 // resource/server/actions.ts
-const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) => GetPlayerPed(String(source)), pos = (source) => {
-	let [x = 0, y = 0, z = 0] = GetEntityCoords(ped(source));
-	return {
-		x,
-		y,
-		z
-	};
-}, name = (source) => GetPlayerName(String(source)) || String(source), targetName = (target) => `${name(target)} (${target})`, log$2 = (message, source, target, metadata) => aiLog("actions", message, {
+const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) => GetPlayerPed(String(source)), pos = (source) => ({ ...coordsOf(source) }), name = (source) => GetPlayerName(String(source)) || String(source), targetName = (target) => `${name(target)} (${target})`, log$2 = (message, source, target, metadata) => aiLog("actions", message, {
 	source: source > 0 ? source : void 0,
 	target,
 	metadata
@@ -1651,12 +1684,10 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		return emitNet(EVENTS.teleport, target, point), notify(target, Locale("NOTIFY_BROUGHT"), "info"), log$2("brought a player", source, target, point), null;
 	},
 	heal(source, target) {
-		let death = optionalExport("ai-death");
-		return death ? isOnline(target) ? death.IsDead(target) === !0 ? "ERR_DOWN" : (death.Heal(target), target !== source && notify(target, Locale("NOTIFY_HEALED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_HEALED", name(target)), "success"), log$2("healed a player", source, target), null) : "ERR_TARGET" : "ERR_NO_DEATH";
+		return medical.provider() === null ? "ERR_NO_DEATH" : isOnline(target) ? medical.isDead(target) ? "ERR_DOWN" : (medical.heal(target), target !== source && notify(target, Locale("NOTIFY_HEALED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_HEALED", name(target)), "success"), log$2("healed a player", source, target), null) : "ERR_TARGET";
 	},
 	revive(source, target) {
-		let death = optionalExport("ai-death");
-		return death ? isOnline(target) ? (death.Revive(target) !== !0 && death.Heal(target), target !== source && notify(target, Locale("NOTIFY_REVIVED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_REVIVED", name(target)), "success"), log$2("revived a player", source, target), null) : "ERR_TARGET" : "ERR_NO_DEATH";
+		return medical.provider() === null ? "ERR_NO_DEATH" : isOnline(target) ? (medical.revive(target) || medical.heal(target), target !== source && notify(target, Locale("NOTIFY_REVIVED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_REVIVED", name(target)), "success"), log$2("revived a player", source, target), null) : "ERR_TARGET";
 	},
 	async car(source, model) {
 		let hashName = model.toLowerCase();
@@ -1958,43 +1989,27 @@ const core = resourceExport("ai-core"), WORLD_FIELDS = [
 new class {
 	last = readControls(panel.get("controls"));
 	constructor() {
-		commitControls({
-			announceSend: !1,
-			warnSend: !1
-		}), this.last = readControls(panel.get("controls")), panel.rule("controls", (_key, next) => this.check(readControls(next))), panel.onChange("controls", () => this.edited());
+		panel.rule("controls", (_key, next) => this.check(readControls(next))), panel.onChange("controls", () => this.edited()), panel.onAction("announceSend", (admin, raw) => {
+			let form = readControls(raw);
+			return form.announceText ? (actions.announce(admin, form.announceText), commitControls({ announceText: "" }), null) : "ERR_MESSAGE_EMPTY";
+		}), panel.onAction("warnSend", (admin, raw) => {
+			let form = readControls(raw), target = form.warnPlayer ? core.GetSourceByCitizenId(form.warnPlayer) : null;
+			return target === null || target === admin ? "ERR_TARGET" : form.warnReason ? (actions.warn(admin, target, form.warnReason), commitControls({
+				warnReason: "",
+				warnPlayer: ""
+			}), null) : "ERR_REASON_EMPTY";
+		});
 	}
 	check(next) {
-		if (next.announceSend && !this.last.announceSend && !next.announceText) return "ERR_MESSAGE_EMPTY";
-		if (next.warnSend && !this.last.warnSend) {
-			let target = next.warnPlayer ? core.GetSourceByCitizenId(next.warnPlayer) : null;
-			if (target === null || target === panel.editor) return "ERR_TARGET";
-			if (!next.warnReason) return "ERR_REASON_EMPTY";
-		}
 		return WORLD_FIELDS.some((f) => next[f] !== this.last[f]) && world.getWeather() === null ? "ERR_NO_WEATHER" : null;
 	}
 	edited() {
 		let before = this.last, now = readControls(panel.get("controls"));
 		this.last = now;
 		let admin = panel.editor;
-		if (admin !== 0) {
-			if (now.announceSend && !before.announceSend && (actions.announce(admin, now.announceText), setImmediate(() => commitControls({
-				announceSend: !1,
-				announceText: ""
-			}))), now.warnSend && !before.warnSend) {
-				let target = core.GetSourceByCitizenId(now.warnPlayer);
-				target !== null && actions.warn(admin, target, now.warnReason), setImmediate(() => commitControls({
-					warnSend: !1,
-					warnReason: "",
-					warnPlayer: ""
-				}));
-			}
-			now.weather !== before.weather && now.weather && worldActions.weather(admin, now.weather), (now.hour !== before.hour || now.minute !== before.minute) && worldActions.time(admin, now.hour, now.minute), now.freezeTime !== before.freezeTime && worldActions.freeze(admin, now.freezeTime), now.blackout !== before.blackout && worldActions.blackout(admin, now.blackout);
-		}
+		admin !== 0 && (now.weather !== before.weather && now.weather && worldActions.weather(admin, now.weather), (now.hour !== before.hour || now.minute !== before.minute) && worldActions.time(admin, now.hour, now.minute), now.freezeTime !== before.freezeTime && worldActions.freeze(admin, now.freezeTime), now.blackout !== before.blackout && worldActions.blackout(admin, now.blackout));
 	}
-}(), onClientCallback(EVENTS.access, (source) => !!IsPlayerAceAllowed(String(source), ADMIN.ace)), onClientCallback(EVENTS.noclip, { args: ([on]) => typeof on == "boolean" ? [on] : null }, (source, on) => on && !IsPlayerAceAllowed(String(source), ADMIN.ace) ? {
-	ok: !1,
-	error: "ERR_NOT_ALLOWED"
-} : (aiLog("actions", on ? "noclip on" : "noclip off", { source }), { ok: !0 })), onClientCallback(EVENTS.players, () => getPlayers().map((p) => ({
+}(), onClientCallback(EVENTS.access, (source) => !!IsPlayerAceAllowed(String(source), ADMIN.ace)), onClientCallback(EVENTS.noclip, { args: ([on]) => typeof on == "boolean" ? [on] : null }, (source, on) => on && !IsPlayerAceAllowed(String(source), ADMIN.ace) ? fail("ERR_NOT_ALLOWED") : (aiLog("actions", on ? "noclip on" : "noclip off", { source }), { ok: !0 })), onClientCallback(EVENTS.players, () => getPlayers().map((p) => ({
 	id: Number(p),
 	name: GetPlayerName(p)
 })).sort((a, b) => a.id - b.id), {
@@ -2013,11 +2028,15 @@ new class {
 		windowMs: 1e3
 	}
 });
-const parseAction = ([action, target, value]) => !isMenuAction(action) || target != null && !(typeof target == "number" && Number.isInteger(target) && target > 0) || value != null && !(typeof value == "string" && value.length <= 300) ? null : [
-	action,
-	target ?? null,
-	value ?? null
-];
+const parseAction = ([action, target, value]) => {
+	if (!isMenuAction(action)) return null;
+	let id = target == null ? null : readId(target);
+	return target != null && id === null || value != null && !(typeof value == "string" && value.length <= 300) ? null : [
+		action,
+		id,
+		value ?? null
+	];
+};
 function runAction(source, action, target, value) {
 	let who = target ?? source;
 	if (!isOnline(who)) return "ERR_TARGET";
@@ -2054,33 +2073,28 @@ onClientCallback(EVENTS.action, {
 	lock: !0
 }, async (source, action, target, value) => {
 	let error = await runAction(source, action, target, value);
-	return error ? {
-		ok: !1,
-		error
-	} : { ok: !0 };
+	return error ? fail(error) : { ok: !0 };
 }), onClientCallback(EVENTS.giveItems, {
 	args: ([target, list]) => {
-		if (target != null && !(typeof target == "number" && Number.isInteger(target) && target > 0) || !Array.isArray(list) || list.length === 0 || list.length > 50) return null;
-		let items = list.flatMap((v) => typeof v == "object" && v && "name" in v && "count" in v && typeof v.name == "string" && typeof v.count == "number" && Number.isInteger(v.count) ? [{
-			name: v.name,
-			count: v.count
-		}] : []);
-		return items.length === list.length ? [target ?? null, items] : null;
+		let id = target == null ? null : readId(target);
+		if (target != null && id === null || !Array.isArray(list) || list.length === 0 || list.length > 50) return null;
+		let items = list.flatMap((v) => {
+			let name = isRecord(v) ? readText(v.name, 64) : null, count = isRecord(v) ? readInt(v.count, 1, 1e6) : null;
+			return name !== null && count !== null ? [{
+				name,
+				count
+			}] : [];
+		});
+		return items.length === list.length ? [id, items] : null;
 	},
 	guards: [isAdmin()],
 	lock: !0
 }, (source, target, items) => {
 	let who = target ?? source;
-	if (!isOnline(who)) return {
-		ok: !1,
-		error: "ERR_TARGET"
-	};
+	if (!isOnline(who)) return fail("ERR_TARGET");
 	for (let { name, count } of items) {
 		let error = actions.giveItem(source, who, name, count);
-		if (error) return {
-			ok: !1,
-			error
-		};
+		if (error) return fail(error);
 	}
 	return { ok: !0 };
 }), aiLogChannels({ actions: {} });

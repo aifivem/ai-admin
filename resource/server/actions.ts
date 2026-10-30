@@ -1,11 +1,12 @@
 import {
   aiLog,
+  coordsOf,
   EntityState,
   inventory,
   isOnline,
+  medical,
   nearestVehicleTo,
   notify,
-  optionalExport,
   spawnVehicle,
   stateBoolean,
   vehicleKeys,
@@ -25,10 +26,8 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean);
 export type Result = ErrorKey | null;
 
 const ped = (source: number) => GetPlayerPed(String(source));
-const pos = (source: number) => {
-  const [x = 0, y = 0, z = 0] = GetEntityCoords(ped(source));
-  return { x, y, z };
-};
+/** A player's position as log metadata and teleport point. */
+const pos = (source: number) => ({ ...coordsOf(source) });
 const name = (source: number) =>
   GetPlayerName(String(source)) || String(source);
 const targetName = (target: number) => `${name(target)} (${target})`;
@@ -79,13 +78,12 @@ export const actions = {
     return null;
   },
 
-  /** Full health; a downed player needs revive (ai-death keeps the down state). */
+  /** Full health; a downed player needs revive (the death script keeps the down state). */
   heal(source: number, target: number): Result {
-    const death = optionalExport("ai-death");
-    if (!death) return "ERR_NO_DEATH";
+    if (medical.provider() === null) return "ERR_NO_DEATH";
     if (!isOnline(target)) return "ERR_TARGET";
-    if (death.IsDead(target) === true) return "ERR_DOWN";
-    death.Heal(target);
+    if (medical.isDead(target)) return "ERR_DOWN";
+    medical.heal(target);
     if (target !== source)
       notify(target, Locale("NOTIFY_HEALED_BY"), "success");
     if (source > 0)
@@ -96,10 +94,9 @@ export const actions = {
 
   /** Gets a downed player up where they lie; a player who is not down is healed. */
   revive(source: number, target: number): Result {
-    const death = optionalExport("ai-death");
-    if (!death) return "ERR_NO_DEATH";
+    if (medical.provider() === null) return "ERR_NO_DEATH";
     if (!isOnline(target)) return "ERR_TARGET";
-    if (death.Revive(target) !== true) death.Heal(target);
+    if (!medical.revive(target)) medical.heal(target);
     if (target !== source)
       notify(target, Locale("NOTIFY_REVIVED_BY"), "success");
     if (source > 0)

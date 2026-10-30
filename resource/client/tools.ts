@@ -1,11 +1,11 @@
 import {
   AdminWorld,
+  callAction,
   keyHints,
-  loadLocaleTexts,
   notify,
+  player,
   triggerServerCallback,
 } from "@aicore-fivem/lib/client";
-import { isRecord } from "@aicore-fivem/lib/shared";
 import { Locale } from "common";
 import {
   EVENTS,
@@ -14,21 +14,11 @@ import {
   type TeleportPoint,
 } from "common/admin";
 import { Noclip } from "./noclip";
-import { teleportTo, waypoint } from "./teleport";
+import { waypoint } from "./teleport";
 
 const world = new AdminWorld(["settings"]);
-const texts = loadLocaleTexts();
-export const noclip = new Noclip(() => readSettings(world.get("settings")));
-
-/** null for an `{ ok: true }` answer, else the error text to show. */
-export function failure(result: unknown): string | null {
-  if (isRecord(result) && result.ok === true) return null;
-  const key =
-    isRecord(result) && typeof result.error === "string"
-      ? result.error
-      : "ERR_NOT_ALLOWED";
-  return texts[key] ?? key;
-}
+const settings = world.view("settings", readSettings);
+export const noclip = new Noclip(() => settings.value);
 
 /** Asks the server to run an action (it checks the admin again and logs); only failures are shown here. */
 export async function run(
@@ -36,14 +26,12 @@ export async function run(
   target: number | null = null,
   value: string | null = null,
 ): Promise<void> {
-  const error = failure(
-    await triggerServerCallback(EVENTS.action, [action, target, value]).catch(
-      () => null,
-    ),
-  );
-  if (error) notify(error, "error");
+  await callAction(EVENTS.action, [action, target, value], {
+    fallback: "ERR_NOT_ALLOWED",
+  });
 }
 
+/** Noclip off is only reported (the server logs it); on is asked through `callAction`. */
 const reportNoclip = (on: boolean) =>
   triggerServerCallback(EVENTS.noclip, [on]).catch(() => null);
 
@@ -72,8 +60,10 @@ export async function setNoclip(on: boolean): Promise<void> {
     notify(Locale("NOTIFY_NOCLIP_OFF"), "info");
     return;
   }
-  const error = failure(await reportNoclip(true));
-  if (error) return notify(error, "error");
+  const allowed = await callAction(EVENTS.noclip, [true], {
+    fallback: "ERR_NOT_ALLOWED",
+  });
+  if (!allowed) return;
   noclip.start();
   noclipHints(true);
   notify(Locale("NOTIFY_NOCLIP_ON"), "success");
@@ -86,8 +76,13 @@ export async function teleport(point: TeleportPoint | null): Promise<void> {
     noclipHints(false);
     void reportNoclip(false);
   }
-  if (point) return teleportTo(point.x, point.y, point.z);
+  // Server points are ped positions (z = the ped's root); the waypoint has no z: the ground under it is found.
+  if (point)
+    return player.teleport(point, { ground: false, keepVehicle: true });
   const target = waypoint();
   if (!target) return notify(Locale("ERR_NO_WAYPOINT"), "error");
-  await teleportTo(target[0], target[1]);
+  await player.teleport(
+    { x: target[0], y: target[1] },
+    { ground: "find", keepVehicle: true },
+  );
 }

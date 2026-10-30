@@ -1,4 +1,4 @@
-import { cache } from "@aicore-fivem/lib/client";
+import { cache, controls, TickLoop } from "@aicore-fivem/lib/client";
 import type { Settings } from "common/admin";
 
 /**
@@ -28,6 +28,11 @@ const SWITCH_VIEW = 236; // V
 const LOOK_X = 220;
 const LOOK_Y = 221;
 
+const CHAT = 245;
+/** lib `controls` reason; the controls noclip leaves enabled. */
+const NOCLIP_CONTROLS = "noclip";
+const KEPT_CONTROLS = [LOOK_X, LOOK_Y, CHAT];
+
 const pressed = (group: number, control: number): boolean =>
   IsControlPressed(group, control) || IsDisabledControlPressed(group, control);
 
@@ -39,7 +44,7 @@ export class Noclip {
   private firstPerson = false;
   private speed = 1;
   private camera = 0;
-  private frame: number | null = null;
+  private readonly frame = new TickLoop(() => this.step());
   private landing: ReturnType<typeof setInterval> | null = null;
   /** Panel values, read once per start (not per frame). */
   private config: Settings;
@@ -58,10 +63,9 @@ export class Noclip {
     this.config = this.settings();
     this.speed = this.config.noclipSpeed;
     this.ped = cache.ped;
-    const vehicle = GetVehiclePedIsIn(this.ped, false);
-    this.inVehicle =
-      vehicle !== 0 && GetPedInVehicleSeat(vehicle, -1) === this.ped;
-    this.entity = this.inVehicle ? vehicle : this.ped;
+    this.inVehicle = cache.vehicle !== false && cache.seat === -1;
+    this.entity =
+      cache.vehicle !== false && this.inVehicle ? cache.vehicle : this.ped;
     if (this.inVehicle) SetVehicleEngineOn(this.entity, false, true, true);
     else ClearPedTasksImmediately(this.ped);
     this.stopLanding();
@@ -75,15 +79,15 @@ export class Noclip {
       0,
     );
     SetUserRadioControlEnabled(false);
-    this.frame = setTick(() => this.step());
+    this.frame.set(true);
   }
 
   /** Back on the ground; `landed` runs once the ped (or vehicle) stopped falling. */
   stop(landed: () => void): void {
     if (!this.active) return;
     this.active = false;
-    if (this.frame !== null) clearTick(this.frame);
-    this.frame = null;
+    this.frame.set(false);
+    controls.enable(NOCLIP_CONTROLS);
     this.destroyCamera();
     PlaySoundFromEntity(
       -1,
@@ -113,8 +117,8 @@ export class Noclip {
 
   /** Resource stop or a teleport: everything back right away. */
   reset(): void {
-    if (this.frame !== null) clearTick(this.frame);
-    this.frame = null;
+    this.frame.set(false);
+    controls.enable(NOCLIP_CONTROLS);
     if (this.active) this.destroyCamera();
     this.active = false;
     this.stopLanding();
@@ -222,14 +226,12 @@ export class Noclip {
   private step(): void {
     const c = this.config;
     this.rotate();
-    if (!IsPauseMenuActive()) {
+    // Every control is the noclip's while flying (camera look and chat stay); the pause menu gets them back.
+    if (IsPauseMenuActive()) controls.enable(NOCLIP_CONTROLS);
+    else {
       HudWeaponWheelIgnoreSelection();
-      DisableAllControlActions(0);
-      DisableAllControlActions(1);
-      DisableAllControlActions(2);
-      EnableControlAction(0, LOOK_X, true);
-      EnableControlAction(0, LOOK_Y, true);
-      EnableControlAction(0, 245, true);
+      if (!controls.isDisabled(NOCLIP_CONTROLS))
+        controls.disableAll(NOCLIP_CONTROLS, KEPT_CONTROLS);
     }
     if (IsDisabledControlJustPressed(0, SWITCH_VIEW)) {
       this.firstPerson = !this.firstPerson;

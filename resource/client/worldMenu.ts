@@ -2,7 +2,8 @@ import { MENU_BACK } from "@aicore-fivem/shared";
 import { input, menu, triggerServerCallback } from "@aicore-fivem/lib/client";
 import { Locale } from "common";
 import { EVENTS } from "common/admin";
-import { toWorldState, WEATHERS } from "common/controls";
+import { WEATHERS } from "@aicore-fivem/shared";
+import { toWorldState } from "common/controls";
 import { run } from "./tools";
 
 /** A text typed in the input dialog (trimmed), or null when it was closed or left empty. */

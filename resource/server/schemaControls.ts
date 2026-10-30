@@ -1,9 +1,9 @@
-import type { FileSpec, TabSpec } from "@aicore-fivem/shared";
-import { NOTIFY_KINDS, WEATHERS } from "common/controls";
+import { WEATHERS, type FileSpec, type TabSpec } from "@aicore-fivem/shared";
+import { NOTIFY_KINDS } from "common/controls";
 
 /**
- * The Messages and World tabs: forms whose edits act at once (server/controls.ts). A Send switch sends its form and
- * turns itself off; a world field sets the weather or time for everyone.
+ * The Messages and World tabs: forms whose edits act at once (server/controls.ts). A Send button (`action` widget)
+ * sends its form and clears it; a world field sets the weather or time for everyone.
  */
 export const CONTROLS_FILE: FileSpec = {
   kind: "settings",
@@ -12,10 +12,8 @@ export const CONTROLS_FILE: FileSpec = {
     announceText: { type: "text", min: 0, max: 300 },
     announceKind: { type: "enum", values: NOTIFY_KINDS },
     announceSeconds: { type: "number", min: 2, max: 60, integer: true },
-    announceSend: { type: "bool" },
     warnPlayer: { type: "text", min: 0, max: 64, lookup: "player" },
     warnReason: { type: "text", min: 0, max: 300 },
-    warnSend: { type: "bool" },
     weather: { type: "enum", values: ["", ...WEATHERS] },
     hour: { type: "number", min: 0, max: 23, integer: true },
     minute: { type: "number", min: 0, max: 59, integer: true },
@@ -26,10 +24,8 @@ export const CONTROLS_FILE: FileSpec = {
     announceText: "",
     announceKind: "warning",
     announceSeconds: 10,
-    announceSend: false,
     warnPlayer: "",
     warnReason: "",
-    warnSend: false,
     weather: "",
     hour: 12,
     minute: 0,
@@ -86,10 +82,13 @@ export const CONTROLS_TABS: TabSpec[] = [
             unit: "s",
           },
           {
-            widget: "switch",
+            widget: "action",
             path: "announceSend",
             label: "ADMIN_F_ANNOUNCE_SEND",
             hint: "ADMIN_H_ANNOUNCE_SEND",
+            button: "ADMIN_B_ANNOUNCE_SEND",
+            icon: "comments",
+            confirm: "ADMIN_Q_ANNOUNCE_SEND",
           },
         ],
       },
@@ -114,10 +113,13 @@ export const CONTROLS_TABS: TabSpec[] = [
             placeholder: "ADMIN_P_WARN_REASON",
           },
           {
-            widget: "switch",
+            widget: "action",
             path: "warnSend",
             label: "ADMIN_F_WARN_SEND",
             hint: "ADMIN_H_WARN_SEND",
+            button: "ADMIN_B_WARN_SEND",
+            icon: "triangle-exclamation",
+            danger: true,
           },
         ],
       },

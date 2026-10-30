@@ -3,14 +3,14 @@ import {
   input,
   itemPicker,
   menu,
-  notify,
+  callAction,
   optionalExport,
   triggerServerCallback,
 } from "@aicore-fivem/lib/client";
 import { Locale } from "common";
 import { EVENTS, toPlayerEntries, type MenuAction } from "common/admin";
 import { waypoint } from "./teleport";
-import { failure, noclip, run, setNoclip } from "./tools";
+import { noclip, run, setNoclip } from "./tools";
 import { announce, warn, worldMenu } from "./worldMenu";
 
 async function spawnVehicle(): Promise<void> {
@@ -43,12 +43,9 @@ export async function giveItem(target: number | null): Promise<void> {
     target: target ?? undefined,
   });
   if (!items || items.length === 0) return;
-  const error = failure(
-    await triggerServerCallback(EVENTS.giveItems, [target, items]).catch(
-      () => null,
-    ),
-  );
-  if (error) notify(error, "error");
+  await callAction(EVENTS.giveItems, [target, items], {
+    fallback: "ERR_NOT_ALLOWED",
+  });
 }
 
 const PLAYER_ACTIONS = [

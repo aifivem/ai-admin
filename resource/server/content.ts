@@ -5,19 +5,17 @@ import { adminSchema } from "./schema";
 
 export const panel = new AdminPanel(adminSchema);
 
-/** Panel content, parsed again after every change. */
+/** Panel content, kept current by the panel. */
+const settings = panel.view("settings", readSettings);
+const controls = panel.view("controls", readControls);
 export const content = {
-  settings: readSettings(panel.get("settings")),
-  controls: readControls(panel.get("controls")),
+  get settings() {
+    return settings.value;
+  },
+  get controls() {
+    return controls.value;
+  },
 };
-panel.onChange(
-  "settings",
-  () => (content.settings = readSettings(panel.get("settings"))),
-);
-panel.onChange(
-  "controls",
-  () => (content.controls = readControls(panel.get("controls"))),
-);
 
 /** Stores fields of the Messages / World form the script changed itself (the panel shows them); unchanged ones are skipped. */
 export function commitControls(change: Partial<Record<string, unknown>>): void {

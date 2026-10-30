@@ -28,10 +28,6 @@
       "minimum": 2,
       "maximum": 60
     },
-    "announceSend": {
-      "description": "Send now: Switch on to send the message to everyone; it switches itself off and the message box empties.",
-      "type": "boolean"
-    },
     "warnPlayer": {
       "description": "Player: Players online when the panel opened; reopen the panel for players who joined since.",
       "type": "string",
@@ -43,10 +39,6 @@
       "type": "string",
       "minLength": 0,
       "maxLength": 300
-    },
-    "warnSend": {
-      "description": "Send now: Switch on to send the warning; it switches itself off and the form empties.",
-      "type": "boolean"
     },
     "weather": {
       "description": "Weather: Picking one sets it for everyone now.",
