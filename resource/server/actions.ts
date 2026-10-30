@@ -1,15 +1,10 @@
-import {
-  aiLog,
-  isOnline,
-  notify,
-  optionalExport,
-  spawnVehicle,
-  vehicleType,
-} from "@aicore-fivem/lib/server";
+import { aiLog, EntityState, isOnline, notify, optionalExport, spawnVehicle, stateBoolean, vehicleType } from "@aicore-fivem/lib/server";
 import { ADMIN, VEHICLE_BAGS } from "@aicore-fivem/shared";
 import { Locale } from "common";
 import { EVENTS, type ErrorKey, type TeleportPoint } from "common/admin";
 import { content } from "./content";
+
+const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean);
 
 /**
  * Admin actions behind the commands and the quick menu. The caller already checked the admin; each returns null
@@ -124,7 +119,7 @@ export const actions = {
     if (
       current &&
       GetPedInVehicleSeat(current, -1) === admin &&
-      Entity(current).state[VEHICLE_BAGS.owned] !== true
+      owned.get(current) !== true
     )
       DeleteEntity(current);
     const p = pos(source);
