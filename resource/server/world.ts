@@ -34,7 +34,7 @@ export const worldActions = {
     const weather = type.toUpperCase();
     return done(
       source,
-      world.setWeather(weather),
+      isWeather(weather) && world.setWeather(weather),
       Locale("NOTIFY_WEATHER", weather),
       { weather: isWeather(weather) ? weather : "" },
     );

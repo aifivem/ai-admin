@@ -1,9 +1,9 @@
 import { readSettings } from "common/admin";
 import { readControls } from "common/controls";
-import { Panel } from "./panel";
+import { AdminPanel } from "@aicore-fivem/lib/server";
 import { adminSchema } from "./schema";
 
-export const panel = new Panel(adminSchema);
+export const panel = new AdminPanel(adminSchema);
 
 /** Panel content, parsed again after every change. */
 export const content = {
