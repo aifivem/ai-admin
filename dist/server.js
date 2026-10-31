@@ -1510,7 +1510,10 @@ const core$12 = resourceExport(CORE.resource), medical = {
 	isDead: (source) => core$12.IsPlayerDead(source),
 	provider: () => core$12.GetMedicalSystem()
 };
-resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
+resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
+// ../../../packages/lib/src/server/stress.ts
+const core$6 = resourceExport(CORE.resource), needs = { refill: (source) => core$6.RefillNeeds(source) };
+resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/index.ts
 function isOnline(source) {
 	return !!GetPlayerName(String(source));
@@ -2004,7 +2007,7 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		return medical.provider() === null ? "ERR_NO_DEATH" : isOnline(target) ? medical.isDead(target) ? "ERR_DOWN" : (medical.heal(target), target !== source && notify(target, Locale("NOTIFY_HEALED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_HEALED", name$1(target)), "success"), log$3("healed a player", source, target), null) : "ERR_TARGET";
 	},
 	revive(source, target) {
-		return medical.provider() === null ? "ERR_NO_DEATH" : isOnline(target) ? (medical.revive(target) || medical.heal(target), target !== source && notify(target, Locale("NOTIFY_REVIVED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_REVIVED", name$1(target)), "success"), log$3("revived a player", source, target), null) : "ERR_TARGET";
+		return medical.provider() === null ? "ERR_NO_DEATH" : isOnline(target) ? (medical.revive(target) || medical.heal(target), needs.refill(target), target !== source && notify(target, Locale("NOTIFY_REVIVED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_REVIVED", name$1(target)), "success"), log$3("revived a player", source, target), null) : "ERR_TARGET";
 	},
 	async car(source, model) {
 		let hashName = model.toLowerCase();

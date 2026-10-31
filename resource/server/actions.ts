@@ -6,6 +6,7 @@ import {
   isOnline,
   medical,
   nearestVehicleTo,
+  needs,
   notify,
   plateOf,
   spawnVehicle,
@@ -94,11 +95,12 @@ export const actions = {
     return null;
   },
 
-  /** Gets a downed player up where they lie; a player who is not down is healed. */
+  /** Gets a downed player up where they lie (a player who is not down is healed), hunger and thirst full. */
   revive(source: number, target: number): Result {
     if (medical.provider() === null) return "ERR_NO_DEATH";
     if (!isOnline(target)) return "ERR_TARGET";
     if (!medical.revive(target)) medical.heal(target);
+    needs.refill(target);
     if (target !== source)
       notify(target, Locale("NOTIFY_REVIVED_BY"), "success");
     if (source > 0)

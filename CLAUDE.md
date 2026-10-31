@@ -25,6 +25,7 @@ Admin tools: noclip, teleports (waypoint, coordinates, to / from players), heal 
 ## Pitfalls
 
 - Never `medical.heal` a downed player: the ped gets up but the death script keeps the down state. Revive first.
+- Revive (command and menu) also fills hunger and thirst (lib `needs.refill`, owner decision): an empty need keeps hurting the player, so a revive without it ends in the next death.
 - Menu item icons must exist in ai-core's icon map (`web/src/features/admin/icons.ts`), or they show as a dot.
 
 ## Entry points
