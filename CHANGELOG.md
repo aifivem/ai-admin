@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/aifivem/ai-admin/compare/v0.1.1...v0.2.0) (2026-10-31)
+
+
+### New Features
+
+* admin revive also fills hunger and thirst ([ad2febc](https://github.com/aifivem/ai-admin/commit/ad2febcdffdf6104c1cb3b3c5d7d065b49e400c0))
+
+
+### Miscellaneous Chores
+
+* rebuild with the current lib ([698c09b](https://github.com/aifivem/ai-admin/commit/698c09b7df66000c3ff000fba91019da6c3bc030))
+
 ## [0.1.1](https://github.com/aifivem/ai-admin/compare/v0.1.0...v0.1.1) (2026-10-31)
 
 

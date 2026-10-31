@@ -1,6 +1,6 @@
 {
   "name": "ai-admin",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Admin tools: noclip, teleports, heal and revive, vehicles, announcements and a quick admin menu",
   "license": "GPL-3.0-only",
