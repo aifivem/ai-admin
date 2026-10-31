@@ -7,7 +7,7 @@
   "author": {
     "name": "TGIANN"
   },
-  "repository": "github:TGIANN/ai-admin",
+  "repository": "github:aifivem/ai-admin",
   "type": "module",
   "fxDependencies": [
     "/onesync",
