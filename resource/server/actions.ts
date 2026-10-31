@@ -7,6 +7,7 @@ import {
   medical,
   nearestVehicleTo,
   notify,
+  plateOf,
   spawnVehicle,
   stateBoolean,
   vehicleKeys,
@@ -149,7 +150,7 @@ export const actions = {
     if (!vehicle) return "ERR_NO_VEHICLE";
     const metadata = {
       model: GetEntityModel(vehicle),
-      plate: GetVehicleNumberPlateText(vehicle),
+      plate: plateOf(vehicle),
       ...pos(source),
     };
     DeleteEntity(vehicle);
@@ -258,7 +259,7 @@ export const actions = {
     const vehicle = nearestVehicleTo(source, 5);
     if (!vehicle) return "ERR_NO_VEHICLE";
     vehicleKeys.give(target, vehicle, "temporary");
-    const plate = GetVehicleNumberPlateText(vehicle).trim();
+    const plate = plateOf(vehicle);
     notify(
       source,
       Locale("NOTIFY_KEYS_GIVEN", plate, targetName(target)),

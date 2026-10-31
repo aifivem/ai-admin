@@ -72,7 +72,7 @@ function readText(value, max) {
 const fail = (error) => ({
 	ok: !1,
 	error
-}), isObject = (value) => typeof value == "object" && !!value && !Array.isArray(value);
+}), isPublic = (rule) => rule.jobs.length === 0 && rule.gangs.length === 0, isObject = (value) => typeof value == "object" && !!value && !Array.isArray(value);
 function readRecords(raw, readOne) {
 	let out = new Map();
 	if (!isObject(raw)) return out;
@@ -260,6 +260,7 @@ const CORE = {
 }, ADMIN = {
 	ace: "ai.admin",
 	openCallback: "ai-core:admin:open",
+	panelDataCallback: "ai-core:admin:panelData",
 	applyCallback: "ai-core:admin:apply",
 	closeEvent: "ai-core:admin:close",
 	showEvent: "ai-core:admin:show",
@@ -764,7 +765,7 @@ var AdminPanel = class {
 	constructor(schema) {
 		this.schema = schema;
 		for (let [name, spec] of Object.entries(schema.files)) this.load(name, spec);
-		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges), { rate: {
+		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelSummary", () => this.summary()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges), { rate: {
 			count: 4,
 			windowMs: 1e4
 		} }), setImmediate(() => core$15.RegisterAdminPanel(this.resource));
@@ -793,6 +794,27 @@ var AdminPanel = class {
 			schema: this.schema,
 			texts: loadLocaleTexts(),
 			data: clone(Object.fromEntries(this.data))
+		};
+	}
+	summary() {
+		let data = {}, index = {};
+		for (let [file, spec] of Object.entries(this.schema.files)) {
+			let content = this.data.get(file);
+			if (spec.kind !== "records") {
+				data[file] = clone(content ?? {});
+				continue;
+			}
+			let labels = {};
+			for (let [key, record] of Object.entries(content ?? {})) labels[key] = labelOf(record, spec.labelPath) ?? key;
+			index[file] = labels;
+		}
+		return {
+			resource: this.resource,
+			schema: this.schema,
+			texts: loadLocaleTexts(),
+			data,
+			loaded: !1,
+			index
 		};
 	}
 	apply(admin, raw) {
@@ -878,6 +900,15 @@ var AdminPanel = class {
 		this.data.set(name, data), (filled || raw === null || !file.hasSchemaRef()) && file.write(data);
 	}
 };
+function labelOf(record, path) {
+	if (!path) return null;
+	let at = record;
+	for (let part of path.split(".")) {
+		if (typeof at != "object" || !at) return null;
+		at = at[part];
+	}
+	return typeof at == "string" && at !== "" ? at : null;
+}
 // ../../../packages/lib/src/server/log.ts
 function aiLog(channel, message, options) {
 	optionalExport("ai-core")?.Log(channel, message, options);
@@ -1007,6 +1038,20 @@ var OnlinePlayers = class {
 	onDutyIn(source, jobs) {
 		let duty = this.dutyJob(source);
 		return duty !== null && jobs.includes(duty);
+	}
+	allows(source, rule) {
+		if (isPublic(rule)) return !0;
+		let min = (name) => rule.grades[name] ?? 0;
+		for (let gang of rule.gangs) {
+			let grade = this.gangGrade(source, gang);
+			if (grade !== null && grade >= min(gang)) return !0;
+		}
+		let duty = rule.onDuty ? this.dutyJob(source) : null;
+		for (let job of rule.jobs) {
+			let grade = this.jobGrade(source, job);
+			if (grade !== null && grade >= min(job) && (!rule.onDuty || duty === job)) return !0;
+		}
+		return !1;
 	}
 	countOnDuty(jobs) {
 		this.start();
@@ -1216,6 +1261,8 @@ function addCommand(name, options, handler) {
 	commands.add(command);
 }
 createLogger(GetCurrentResourceName()), createLogger("aicore-lib");
+// ../../../packages/lib/src/fivem/byResource.ts
+const plateOf = (vehicle) => GetVehicleNumberPlateText(vehicle).trim().toUpperCase();
 let log$3 = null;
 var ScheduledJob = class {
 	interval;
@@ -1953,7 +2000,7 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		if (!vehicle) return "ERR_NO_VEHICLE";
 		let metadata = {
 			model: GetEntityModel(vehicle),
-			plate: GetVehicleNumberPlateText(vehicle),
+			plate: plateOf(vehicle),
 			...pos(source)
 		};
 		return DeleteEntity(vehicle), notify(source, Locale("NOTIFY_DV_DONE"), "success"), log$2("deleted a vehicle", source, void 0, metadata), null;
@@ -1998,7 +2045,7 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		let vehicle = nearestVehicleTo(source, 5);
 		if (!vehicle) return "ERR_NO_VEHICLE";
 		vehicleKeys.give(target, vehicle, "temporary");
-		let plate = GetVehicleNumberPlateText(vehicle).trim();
+		let plate = plateOf(vehicle);
 		return notify(source, Locale("NOTIFY_KEYS_GIVEN", plate, targetName(target)), "success"), log$2("gave vehicle keys", source, target, { plate }), null;
 	},
 	openInventory(source, target) {
