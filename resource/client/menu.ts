@@ -1,15 +1,15 @@
 import { MENU_BACK } from "@aicore-fivem/shared";
 import {
+  callAction,
   input,
   itemPicker,
   menu,
-  callAction,
   optionalExport,
   triggerServerCallback,
+  waypoint,
 } from "@aicore-fivem/lib/client";
 import { Locale } from "common";
 import { EVENTS, toPlayerEntries, type MenuAction } from "common/admin";
-import { waypoint } from "./teleport";
 import { noclip, run, setNoclip } from "./tools";
 import { announce, warn, worldMenu } from "./worldMenu";
 

@@ -250,6 +250,8 @@ const CORE = {
 	vehicleTypeCallback: "ai-core:vehicleType",
 	interactionStateKey: "ai:interaction",
 	pvpStateKey: "ai:pvp",
+	medicalStateKey: "ai:medical",
+	clientDeadEvent: "ai-core:client:dead",
 	charactersCallback: "ai-core:characters",
 	createCharacterCallback: "ai-core:createCharacter",
 	deleteCharacterCallback: "ai-core:deleteCharacter",
@@ -347,6 +349,10 @@ function entityCoords(entity) {
 	};
 }
 const coordsOf = (source) => entityCoords(GetPlayerPed(String(source)));
+function vehicleOf(source, options = {}) {
+	let ped = GetPlayerPed(String(source)), vehicle = GetVehiclePedIsIn(ped, !1);
+	return !vehicle || !options.driver || GetPedInVehicleSeat(vehicle, -1) === ped ? vehicle : 0;
+}
 resourceExport(CORE.resource);
 const log$10 = createLogger(GetCurrentResourceName()), isAdmin$1 = (ace = ADMIN.ace) => (source) => !!IsPlayerAceAllowed(String(source), ace) || `not allowed (${ace})`, gates = new Set();
 on("playerDropped", () => {
@@ -1013,6 +1019,9 @@ var OnlinePlayers = class {
 	}
 	character(source) {
 		return this.start(), this.players.get(source)?.character ?? null;
+	}
+	charId(source) {
+		return this.start(), this.players.get(source)?.character.id;
 	}
 	name(source, options = {}) {
 		let c = this.character(source);
@@ -1987,8 +1996,8 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		if (!/^[a-z0-9_]{1,32}$/.test(hashName)) return "ERR_MODEL";
 		let type = await vehicleType(hashName, source);
 		if (!type || !isOnline(source)) return "ERR_MODEL";
-		let admin = ped(source), current = GetVehiclePedIsIn(admin, !1);
-		current && GetPedInVehicleSeat(current, -1) === admin && owned.get(current) !== !0 && DeleteEntity(current);
+		let admin = ped(source), current = vehicleOf(source, { driver: !0 });
+		current && owned.get(current) !== !0 && DeleteEntity(current);
 		let p = pos(source);
 		return await spawnVehicle({
 			model: hashName,

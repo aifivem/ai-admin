@@ -11,6 +11,7 @@ import {
   spawnVehicle,
   stateBoolean,
   vehicleKeys,
+  vehicleOf,
   vehicleType,
 } from "@aicore-fivem/lib/server";
 import { ADMIN, VEHICLE_BAGS } from "@aicore-fivem/shared";
@@ -113,14 +114,9 @@ export const actions = {
     const type = await vehicleType(hashName, source);
     if (!type || !isOnline(source)) return "ERR_MODEL";
     const admin = ped(source);
-    const current = GetVehiclePedIsIn(admin, false);
+    const current = vehicleOf(source, { driver: true });
     // The admin's own spawned car is replaced; an owned vehicle is never deleted here.
-    if (
-      current &&
-      GetPedInVehicleSeat(current, -1) === admin &&
-      owned.get(current) !== true
-    )
-      DeleteEntity(current);
+    if (current && owned.get(current) !== true) DeleteEntity(current);
     const p = pos(source);
     const coords = { ...p, heading: GetEntityHeading(admin) };
     const vehicle = await spawnVehicle({

@@ -1,6 +1,7 @@
 import {
   cache,
   controls,
+  drivenVehicle,
   every,
   type Job,
   raycast,
@@ -70,9 +71,9 @@ export class Noclip {
     this.config = this.settings();
     this.speed = this.config.noclipSpeed;
     this.ped = cache.ped;
-    this.inVehicle = cache.vehicle !== false && cache.seat === -1;
-    this.entity =
-      cache.vehicle !== false && this.inVehicle ? cache.vehicle : this.ped;
+    const vehicle = drivenVehicle();
+    this.inVehicle = vehicle !== false;
+    this.entity = vehicle !== false ? vehicle : this.ped;
     if (this.inVehicle) SetVehicleEngineOn(this.entity, false, true, true);
     else ClearPedTasksImmediately(this.ped);
     this.stopLanding();

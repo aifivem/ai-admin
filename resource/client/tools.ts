@@ -5,6 +5,7 @@ import {
   notify,
   player,
   triggerServerCallback,
+  waypoint,
 } from "@aicore-fivem/lib/client";
 import { Locale } from "common";
 import {
@@ -14,7 +15,6 @@ import {
   type TeleportPoint,
 } from "common/admin";
 import { Noclip } from "./noclip";
-import { waypoint } from "./teleport";
 
 const world = new AdminWorld(["settings"]);
 const settings = world.view("settings", readSettings);
@@ -81,8 +81,5 @@ export async function teleport(point: TeleportPoint | null): Promise<void> {
     return player.teleport(point, { ground: false, keepVehicle: true });
   const target = waypoint();
   if (!target) return notify(Locale("ERR_NO_WAYPOINT"), "error");
-  await player.teleport(
-    { x: target[0], y: target[1] },
-    { ground: "find", keepVehicle: true },
-  );
+  await player.teleport(target, { ground: "find", keepVehicle: true });
 }

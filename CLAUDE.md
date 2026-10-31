@@ -30,4 +30,4 @@ Admin tools: noclip, teleports (waypoint, coordinates, to / from players), heal 
 ## Entry points
 
 - Commands `resource/server/commands.ts`, menu callbacks `server/menu.ts`, the actions `server/actions.ts` and `server/world.ts`, panel `server/schema.ts` + `server/schemaControls.ts`, panel forms `server/controls.ts`.
-- Client: noclip `resource/client/noclip.ts`, teleport `client/teleport.ts`, menu `client/menu.ts`, announce / warn inputs and the Weather and time menu `client/worldMenu.ts`.
+- Client: noclip `resource/client/noclip.ts`, menu `client/menu.ts`, announce / warn inputs and the Weather and time menu `client/worldMenu.ts`.

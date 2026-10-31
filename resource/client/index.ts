@@ -3,9 +3,10 @@ import {
   Keybind,
   notify,
   onServerEvent,
+  onStop,
   player,
 } from "@aicore-fivem/lib/client";
-import { Locale, ResourceName } from "common";
+import { Locale } from "common";
 import { EVENTS, toTeleportPoint } from "common/admin";
 import { giveItem, openMenu } from "./menu";
 import { noclip, setNoclip, teleport } from "./tools";
@@ -72,6 +73,4 @@ new Keybind({
   onPressed: () => void setNoclip(!noclip.on),
 });
 
-on("onResourceStop", (resource: string) => {
-  if (resource === ResourceName) noclip.reset();
-});
+onStop(() => noclip.reset());
