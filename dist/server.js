@@ -233,6 +233,8 @@ const CORE = {
 	dutyChangedEvent: "ai-core:dutyChanged",
 	gangsChangedEvent: "ai-core:gangsChanged",
 	activeGangChangedEvent: "ai-core:activeGangChanged",
+	metaChangedEvent: "ai-core:metaChanged",
+	definitionsChangedEvent: "ai-core:definitionsChanged",
 	characterScreenEvent: "ai-core:characterScreen",
 	inventoryChangedEvent: "ai-core:inventoryChanged",
 	itemUsedEvent: "ai-core:itemUsed",
@@ -244,6 +246,9 @@ const CORE = {
 	clientPromptPressedEvent: "ai-core:client:promptPressed",
 	clientCacheEvent: "ai-core:client:cache",
 	clientHudVisibleEvent: "ai-core:client:hudVisible",
+	clientWorldSyncEvent: "ai-core:client:worldSync",
+	clientCancelProgressEvent: "ai-core:client:cancelProgress",
+	clientDefinitionsEvent: "ai-core:client:definitions",
 	vehicleTypeCallback: "ai-core:vehicleType",
 	interactionStateKey: "ai:interaction",
 	charactersCallback: "ai-core:characters",
@@ -252,6 +257,8 @@ const CORE = {
 	selectCharacterCallback: "ai-core:selectCharacter",
 	clientNotifyEvent: "ai-core:client:notify",
 	spawnEvent: "ai-core:client:spawn",
+	chooseSpawnEvent: "ai-core:client:chooseSpawn",
+	spawnChoiceCallback: "ai-core:spawnChoice",
 	openCharactersEvent: "ai-core:client:openCharacters"
 }, ADMIN = {
 	ace: "ai.admin",
@@ -457,7 +464,7 @@ function toPatch(value) {
 		default: return null;
 	}
 }
-const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$15 = resourceExport(CORE.resource), ERR = {
+const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$16 = resourceExport(CORE.resource), ERR = {
 	type: "ADMIN_ERR_TYPE",
 	range: "ADMIN_ERR_RANGE",
 	length: "ADMIN_ERR_LENGTH",
@@ -471,7 +478,7 @@ const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(va
 		if (cached && Date.now() - cached.at < 2e3) return cached.values.size > 0 ? cached.values : null;
 		let list = [];
 		try {
-			list = core$15.GetLookupValues(source);
+			list = core$16.GetLookupValues(source);
 		} catch {}
 		let values = new Set(Array.isArray(list) ? list.filter((v) => typeof v == "string") : []);
 		return this.lists.set(source, {
@@ -736,7 +743,7 @@ function writeSchema(resource, name, text, log) {
 	(0, node_fs_promises.mkdir)(dir, { recursive: !0 }).then(() => (0, node_fs_promises.writeFile)(`${dir}/${name}.schema.json`, text, "utf8")).catch((error) => log.error(`writing ${resource}/${path} failed`, error));
 }
 // ../../../packages/lib/src/server/admin/panel.ts
-const core$14 = resourceExport(CORE.resource);
+const core$15 = resourceExport(CORE.resource);
 var AdminPanel = class {
 	schema;
 	data = new Map();
@@ -752,7 +759,10 @@ var AdminPanel = class {
 	constructor(schema) {
 		this.schema = schema;
 		for (let [name, spec] of Object.entries(schema.files)) this.load(name, spec);
-		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges)), setImmediate(() => core$14.RegisterAdminPanel(this.resource));
+		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges), { rate: {
+			count: 4,
+			windowMs: 1e4
+		} }), setImmediate(() => core$15.RegisterAdminPanel(this.resource));
 	}
 	get(file) {
 		return this.data.get(file) ?? {};
@@ -842,7 +852,7 @@ var AdminPanel = class {
 		let spec = this.schema.files[file], data = this.get(file), value = key === void 0 ? data : data[key] ?? null;
 		this.dataFiles.get(file)?.write(data), this.views.changed(file, key, value);
 		for (let handler of this.handlers.get(file) ?? []) handler(key, value);
-		if (core$14.AdminPanelChanged({
+		if (core$15.AdminPanelChanged({
 			resource: this.resource,
 			file,
 			key,
@@ -880,19 +890,19 @@ function notify(source, text, kind = "info", duration) {
 	emitNet(CORE.clientNotifyEvent, source, notification);
 }
 // ../../../packages/lib/src/server/inventory.ts
-const core$13 = resourceExport(CORE.resource), inventory = {
-	addItem: (inv, item, count = 1, metadata, slot) => core$13.AddItem(inv, item, count, metadata, slot),
-	removeItem: (inv, item, count = 1, metadata, slot) => core$13.RemoveItem(inv, item, count, metadata, slot),
-	getItemCount: (inv, item, metadata) => core$13.GetItemCount(inv, item, metadata),
-	hasItem: (inv, item, count = 1) => core$13.HasItem(inv, item, count),
-	canCarryItem: (inv, item, count = 1, metadata) => core$13.CanCarryItem(inv, item, count, metadata),
-	getItems: (inv) => core$13.GetItems(inv),
-	clearInventory: (inv) => core$13.ClearInventory(inv),
-	registerStash: (name, label, slots, maxWeight, jobs = []) => core$13.RegisterStash(name, label, slots, maxWeight, jobs),
-	openInventory: (source, inv) => core$13.OpenInventory(source, inv),
-	registerUsableItem: (name, handler) => core$13.RegisterUsableItem(name, handler),
-	getItemDefinition: (name) => core$13.GetItemDefinition(name)
-}, core$12 = resourceExport(CORE.resource);
+const core$14 = resourceExport(CORE.resource), inventory = {
+	addItem: (inv, item, count = 1, metadata, slot) => core$14.AddItem(inv, item, count, metadata, slot),
+	removeItem: (inv, item, count = 1, metadata, slot) => core$14.RemoveItem(inv, item, count, metadata, slot),
+	getItemCount: (inv, item, metadata) => core$14.GetItemCount(inv, item, metadata),
+	hasItem: (inv, item, count = 1) => core$14.HasItem(inv, item, count),
+	canCarryItem: (inv, item, count = 1, metadata) => core$14.CanCarryItem(inv, item, count, metadata),
+	getItems: (inv) => core$14.GetItems(inv),
+	clearInventory: (inv) => core$14.ClearInventory(inv),
+	registerStash: (name, label, slots, maxWeight, jobs = []) => core$14.RegisterStash(name, label, slots, maxWeight, jobs),
+	openInventory: (source, inv) => core$14.OpenInventory(source, inv),
+	registerUsableItem: (name, handler) => core$14.RegisterUsableItem(name, handler),
+	getItemDefinition: (name) => core$14.GetItemDefinition(name)
+}, core$13 = resourceExport(CORE.resource);
 function reindex(index, source, before, after) {
 	for (let name of before) {
 		let set = index.get(name);
@@ -920,11 +930,11 @@ var OnlinePlayers = class {
 				gangs: [],
 				gangNames: [],
 				duty: null
-			}), this.setJobs(source, core$12.GetJobs(source) ?? []), this.setGangs(source, core$12.GetGangs(source) ?? []), this.setDuty(source, core$12.GetDutyJob(source));
+			}), this.setJobs(source, core$13.GetJobs(source) ?? []), this.setGangs(source, core$13.GetGangs(source) ?? []), this.setDuty(source, core$13.GetDutyJob(source));
 		};
 		on(CORE.playerLoadedEvent, load), on(CORE.playerUnloadedEvent, (source) => this.drop(source)), on(CORE.jobsChangedEvent, (source, jobs) => this.setJobs(source, jobs)), on(CORE.gangsChangedEvent, (source, gangs) => this.setGangs(source, gangs)), on(CORE.dutyChangedEvent, (source, job) => this.setDuty(source, job));
-		for (let source of core$12.GetLoadedSources()) {
-			let character = core$12.GetCharacter(source);
+		for (let source of core$13.GetLoadedSources()) {
+			let character = core$13.GetCharacter(source);
 			character && load(source, character);
 		}
 	}
@@ -964,6 +974,10 @@ var OnlinePlayers = class {
 	character(source) {
 		return this.start(), this.players.get(source)?.character ?? null;
 	}
+	name(source, options = {}) {
+		let c = this.character(source);
+		return c ? `${c.firstname} ${c.lastname}` : options.fallback === !1 ? "" : GetPlayerName(String(source));
+	}
 	jobs(source) {
 		return this.start(), this.players.get(source)?.jobNames ?? [];
 	}
@@ -1002,10 +1016,10 @@ var OnlinePlayers = class {
 const EMPTY = new Set();
 new OnlinePlayers();
 // ../../../packages/lib/src/server/vehicleKeys.ts
-const core$11 = resourceExport(CORE.resource), vehicleKeys = {
-	give: (source, vehicle, purpose = "temporary") => core$11.GiveVehicleKeys(source, vehicle, purpose),
-	remove: (source, vehicle) => core$11.RemoveVehicleKeys(source, vehicle),
-	has: (source, vehicle) => core$11.HasVehicleKeys(source, vehicle)
+const core$12 = resourceExport(CORE.resource), vehicleKeys = {
+	give: (source, vehicle, purpose = "temporary") => core$12.GiveVehicleKeys(source, vehicle, purpose),
+	remove: (source, vehicle) => core$12.RemoveVehicleKeys(source, vehicle),
+	has: (source, vehicle) => core$12.HasVehicleKeys(source, vehicle)
 }, TYPES = new Set([
 	"automobile",
 	"bike",
@@ -1015,12 +1029,14 @@ const core$11 = resourceExport(CORE.resource), vehicleKeys = {
 	"submarine",
 	"trailer",
 	"train"
-]), types = new Map();
+]), types = new Map(), votes = new Map();
 async function vehicleType(model, asker) {
 	let known = types.get(model);
 	if (known !== void 0) return known;
 	let answer = await triggerClientCallback(CORE.vehicleTypeCallback, asker, [model]).catch(() => null);
-	return typeof answer != "string" || !TYPES.has(answer) ? null : (types.set(model, answer), answer);
+	if (typeof answer != "string" || !TYPES.has(answer)) return null;
+	let seen = votes.get(model) ?? new Map(), first = seen.get(answer);
+	return first !== void 0 && first !== asker ? (types.set(model, answer), votes.delete(model)) : (seen.set(answer, asker), votes.set(model, seen)), answer;
 }
 async function seatPlayer(vehicle, source, seat) {
 	let ped = GetPlayerPed(String(source));
@@ -1227,8 +1243,9 @@ var ScheduledJob = class {
 	get front() {
 		return this.dues[this.head] ?? 0;
 	}
+	compactAt = 64;
 	push(job, due) {
-		this.count > this.mask && this.grow();
+		this.count >= this.compactAt && this.compact(), this.count > this.mask && this.grow();
 		let i = this.head + this.count & this.mask;
 		this.jobs[i] = job, this.gens[i] = job.gen, this.dues[i] = due, this.count++;
 	}
@@ -1241,6 +1258,17 @@ var ScheduledJob = class {
 			let next = due + this.interval;
 			next <= now && (next = now + this.interval), this.push(job, next), job.call();
 		}
+	}
+	compact() {
+		let kept = 0;
+		for (let n = 0; n < this.count; n++) {
+			let i = this.head + n & this.mask, job = this.jobs[i];
+			if (!job || job.gen !== this.gens[i]) continue;
+			let k = this.head + kept & this.mask;
+			this.jobs[k] = job, this.gens[k] = this.gens[i] ?? 0, this.dues[k] = this.dues[i] ?? 0, kept++;
+		}
+		for (let n = kept; n < this.count; n++) this.jobs[this.head + n & this.mask] = void 0;
+		this.count = kept, this.compactAt = Math.max(64, kept * 2);
 	}
 	grow() {
 		let size = (this.mask + 1) * 2, jobs = Array(size), gens = Array(size).fill(0), dues = Array(size).fill(0);
@@ -1351,15 +1379,15 @@ var Mirror = class {
 	}
 };
 // ../../../packages/lib/src/server/world.ts
-const core$9 = resourceExport(CORE.resource), world = {
-	getWeather: () => core$9.GetWeather(),
-	setWeather: (type) => core$9.SetWeather(type),
-	getTime: () => core$9.GetTime(),
-	setTime: (hour, minute = 0) => core$9.SetTime(hour, minute),
-	setBlackout: (on) => core$9.SetBlackout(on),
-	freezeTime: (on) => core$9.FreezeTime(on)
+const core$10 = resourceExport(CORE.resource), world = {
+	getWeather: () => core$10.GetWeather(),
+	setWeather: (type) => core$10.SetWeather(type),
+	getTime: () => core$10.GetTime(),
+	setTime: (hour, minute = 0) => core$10.SetTime(hour, minute),
+	setBlackout: (on) => core$10.SetBlackout(on),
+	freezeTime: (on) => core$10.FreezeTime(on)
 };
-resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
+resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/medical.ts
 const core$4 = resourceExport(CORE.resource), medical = {
 	revive: (source) => core$4.RevivePlayer(source),
