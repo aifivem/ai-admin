@@ -3,6 +3,7 @@ import {
   controls,
   every,
   type Job,
+  raycast,
   TickLoop,
 } from "@aicore-fivem/lib/client";
 import type { Settings } from "common/admin";
@@ -220,10 +221,14 @@ export class Noclip {
   private toGround(): void {
     const [x = 0, y = 0, z = 0] = GetEntityCoords(this.entity, false);
     RequestCollisionAtCoord(x, y, z);
-    const ray = StartShapeTestRay(x, y, z, x, y, -10000, 1, this.entity, 0);
-    const [, hit, coords] = GetShapeTestResult(ray);
+    // A synchronous probe: the async ray's result is not ready in the same frame.
+    const hit = raycast(
+      { x, y, z },
+      { x, y, z: -10000 },
+      { flags: 1, ignore: this.entity },
+    );
     const [found, groundZ] = GetGroundZFor_3dCoord(x, y, z, false);
-    const ground = hit ? (coords[2] ?? z) : found ? groundZ : null;
+    const ground = hit ? hit.coords.z : found ? groundZ : null;
     if (ground === null) return;
     SetEntityCoords(this.entity, x, y, ground, false, false, false, false);
     if (this.inVehicle) SetVehicleOnGroundProperly(this.entity);

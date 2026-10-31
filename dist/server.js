@@ -249,6 +249,7 @@ const CORE = {
 	clientDefinitionsEvent: "ai-core:client:definitions",
 	vehicleTypeCallback: "ai-core:vehicleType",
 	interactionStateKey: "ai:interaction",
+	pvpStateKey: "ai:pvp",
 	charactersCallback: "ai-core:characters",
 	createCharacterCallback: "ai-core:createCharacter",
 	deleteCharacterCallback: "ai-core:deleteCharacter",
@@ -347,7 +348,7 @@ function entityCoords(entity) {
 }
 const coordsOf = (source) => entityCoords(GetPlayerPed(String(source)));
 resourceExport(CORE.resource);
-const log$9 = createLogger(GetCurrentResourceName()), isAdmin = (ace = ADMIN.ace) => (source) => !!IsPlayerAceAllowed(String(source), ace) || `not allowed (${ace})`, gates = new Set();
+const log$10 = createLogger(GetCurrentResourceName()), isAdmin$1 = (ace = ADMIN.ace) => (source) => !!IsPlayerAceAllowed(String(source), ace) || `not allowed (${ace})`, gates = new Set();
 on("playerDropped", () => {
 	let source = Number(globalThis.source);
 	for (let gate of gates) gate.release(source);
@@ -388,11 +389,11 @@ var ClientGate = class {
 		this.refusals.set(source, {
 			at: now,
 			skipped: 0
-		}), log$9.warn(`${this.name} refused for ${GetPlayerName(String(source))} (${source}): ${typeof reason == "string" ? reason : reason()}${more}`);
+		}), log$10.warn(`${this.name} refused for ${GetPlayerName(String(source))} (${source}): ${typeof reason == "string" ? reason : reason()}${more}`);
 	}
 };
 // ../../../packages/lib/src/server/callback.ts
-const log$8 = createLogger(GetCurrentResourceName()), resource$1 = GetCurrentResourceName(), REFUSED = Symbol("refused");
+const log$9 = createLogger(GetCurrentResourceName()), resource$1 = GetCurrentResourceName(), REFUSED = Symbol("refused");
 function onClientCallback(name, first, second) {
 	let [handler, options] = typeof first == "function" ? [first, second ?? {}] : [second, first], gate = new ClientGate(name, options, 20);
 	onNet(requestEvent(name), async (caller, id, ...raw) => {
@@ -404,7 +405,7 @@ function onClientCallback(name, first, second) {
 			let result = await gate.run(source, REFUSED, () => handler(source, ...args));
 			result === REFUSED ? emitNet(responseEvent(caller), source, id, !1, null) : emitNet(responseEvent(caller), source, id, !0, result ?? null);
 		} catch (error) {
-			log$8.error(`callback ${name} failed for ${source}`, error), emitNet(responseEvent(caller), source, id, !1, null);
+			log$9.error(`callback ${name} failed for ${source}`, error), emitNet(responseEvent(caller), source, id, !1, null);
 		}
 	});
 }
@@ -470,7 +471,7 @@ function toPatch(value) {
 		default: return null;
 	}
 }
-const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$17 = resourceExport(CORE.resource), ERR = {
+const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$18 = resourceExport(CORE.resource), ERR = {
 	type: "ADMIN_ERR_TYPE",
 	range: "ADMIN_ERR_RANGE",
 	length: "ADMIN_ERR_LENGTH",
@@ -484,7 +485,7 @@ const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(va
 		if (cached && Date.now() - cached.at < 2e3) return cached.values.size > 0 ? cached.values : null;
 		let list = [];
 		try {
-			list = core$17.GetLookupValues(source);
+			list = core$18.GetLookupValues(source);
 		} catch {}
 		let values = new Set(Array.isArray(list) ? list.filter((v) => typeof v == "string") : []);
 		return this.lists.set(source, {
@@ -749,7 +750,7 @@ function writeSchema(resource, name, text, log) {
 	(0, node_fs_promises.mkdir)(dir, { recursive: !0 }).then(() => (0, node_fs_promises.writeFile)(`${dir}/${name}.schema.json`, text, "utf8")).catch((error) => log.error(`writing ${resource}/${path} failed`, error));
 }
 // ../../../packages/lib/src/server/admin/panel.ts
-const core$16 = resourceExport(CORE.resource);
+const core$17 = resourceExport(CORE.resource);
 var AdminPanel = class {
 	schema;
 	data = new Map();
@@ -765,10 +766,10 @@ var AdminPanel = class {
 	constructor(schema) {
 		this.schema = schema;
 		for (let [name, spec] of Object.entries(schema.files)) this.load(name, spec);
-		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelSummary", () => this.summary()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges), { rate: {
+		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelData", () => this.dataSnapshot()), registerExport("AdminPanelSummary", () => this.summary()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges), { rate: {
 			count: 4,
 			windowMs: 1e4
-		} }), setImmediate(() => core$16.RegisterAdminPanel(this.resource));
+		} }), setImmediate(() => core$17.RegisterAdminPanel(this.resource));
 	}
 	get(file) {
 		return this.data.get(file) ?? {};
@@ -793,8 +794,11 @@ var AdminPanel = class {
 			resource: this.resource,
 			schema: this.schema,
 			texts: loadLocaleTexts(),
-			data: clone(Object.fromEntries(this.data))
+			data: this.dataSnapshot()
 		};
+	}
+	dataSnapshot() {
+		return clone(Object.fromEntries(this.data));
 	}
 	summary() {
 		let data = {}, index = {};
@@ -879,7 +883,7 @@ var AdminPanel = class {
 		let spec = this.schema.files[file], data = this.get(file), value = key === void 0 ? data : data[key] ?? null;
 		this.dataFiles.get(file)?.write(data), this.views.changed(file, key, value);
 		for (let handler of this.handlers.get(file) ?? []) handler(key, value);
-		if (core$16.AdminPanelChanged({
+		if (core$17.AdminPanelChanged({
 			resource: this.resource,
 			file,
 			key,
@@ -926,19 +930,19 @@ function notify(source, text, kind = "info", duration) {
 	emitNet(LIB_UI.notifyEvent, source, notification);
 }
 // ../../../packages/lib/src/server/inventory.ts
-const core$15 = resourceExport(CORE.resource), inventory = {
-	addItem: (inv, item, count = 1, metadata, slot) => core$15.AddItem(inv, item, count, metadata, slot),
-	removeItem: (inv, item, count = 1, metadata, slot) => core$15.RemoveItem(inv, item, count, metadata, slot),
-	getItemCount: (inv, item, metadata) => core$15.GetItemCount(inv, item, metadata),
-	hasItem: (inv, item, count = 1) => core$15.HasItem(inv, item, count),
-	canCarryItem: (inv, item, count = 1, metadata) => core$15.CanCarryItem(inv, item, count, metadata),
-	getItems: (inv) => core$15.GetItems(inv),
-	clearInventory: (inv) => core$15.ClearInventory(inv),
-	registerStash: (name, label, slots, maxWeight, jobs = []) => core$15.RegisterStash(name, label, slots, maxWeight, jobs),
-	openInventory: (source, inv) => core$15.OpenInventory(source, inv),
-	registerUsableItem: (name, handler) => core$15.RegisterUsableItem(name, handler),
-	getItemDefinition: (name) => core$15.GetItemDefinition(name)
-}, core$14 = resourceExport(CORE.resource);
+const core$16 = resourceExport(CORE.resource), inventory = {
+	addItem: (inv, item, count = 1, metadata, slot) => core$16.AddItem(inv, item, count, metadata, slot),
+	removeItem: (inv, item, count = 1, metadata, slot) => core$16.RemoveItem(inv, item, count, metadata, slot),
+	getItemCount: (inv, item, metadata) => core$16.GetItemCount(inv, item, metadata),
+	hasItem: (inv, item, count = 1) => core$16.HasItem(inv, item, count),
+	canCarryItem: (inv, item, count = 1, metadata) => core$16.CanCarryItem(inv, item, count, metadata),
+	getItems: (inv) => core$16.GetItems(inv),
+	clearInventory: (inv) => core$16.ClearInventory(inv),
+	registerStash: (name, label, slots, maxWeight, jobs = []) => core$16.RegisterStash(name, label, slots, maxWeight, jobs),
+	openInventory: (source, inv) => core$16.OpenInventory(source, inv),
+	registerUsableItem: (name, handler) => core$16.RegisterUsableItem(name, handler),
+	getItemDefinition: (name) => core$16.GetItemDefinition(name)
+}, core$15 = resourceExport(CORE.resource);
 function reindex(index, source, before, after) {
 	for (let name of before) {
 		let set = index.get(name);
@@ -966,11 +970,11 @@ var OnlinePlayers = class {
 				gangs: [],
 				gangNames: [],
 				duty: null
-			}), this.setJobs(source, core$14.GetJobs(source) ?? []), this.setGangs(source, core$14.GetGangs(source) ?? []), this.setDuty(source, core$14.GetDutyJob(source));
+			}), this.setJobs(source, core$15.GetJobs(source) ?? []), this.setGangs(source, core$15.GetGangs(source) ?? []), this.setDuty(source, core$15.GetDutyJob(source));
 		};
 		on(CORE.playerLoadedEvent, load), on(CORE.playerUnloadedEvent, (source) => this.drop(source)), on(CORE.jobsChangedEvent, (source, jobs) => this.setJobs(source, jobs)), on(CORE.gangsChangedEvent, (source, gangs) => this.setGangs(source, gangs)), on(CORE.dutyChangedEvent, (source, job) => this.setDuty(source, job));
-		for (let source of core$14.GetLoadedSources()) {
-			let character = core$14.GetCharacter(source);
+		for (let source of core$15.GetLoadedSources()) {
+			let character = core$15.GetCharacter(source);
 			character && load(source, character);
 		}
 	}
@@ -1063,13 +1067,10 @@ var OnlinePlayers = class {
 		return this.start(), this.onDuty.get(job) ?? EMPTY;
 	}
 };
-const EMPTY = new Set();
-new OnlinePlayers();
-// ../../../packages/lib/src/server/vehicleKeys.ts
-const core$13 = resourceExport(CORE.resource), vehicleKeys = {
-	give: (source, vehicle, purpose = "temporary") => core$13.GiveVehicleKeys(source, vehicle, purpose),
-	remove: (source, vehicle) => core$13.RemoveVehicleKeys(source, vehicle),
-	has: (source, vehicle) => core$13.HasVehicleKeys(source, vehicle)
+const EMPTY = new Set(), online = new OnlinePlayers(), core$14 = resourceExport(CORE.resource), vehicleKeys = {
+	give: (source, vehicle, purpose = "temporary") => core$14.GiveVehicleKeys(source, vehicle, purpose),
+	remove: (source, vehicle) => core$14.RemoveVehicleKeys(source, vehicle),
+	has: (source, vehicle) => core$14.HasVehicleKeys(source, vehicle)
 }, TYPES = new Set([
 	"automobile",
 	"bike",
@@ -1161,8 +1162,7 @@ on(CORE.playerUnloadedEvent, (source) => {
 	settle && settle(!1);
 });
 // ../../../packages/lib/src/server/definitions.ts
-const core$11 = resourceExport("ai-core");
-new class {
+const core$12 = resourceExport("ai-core"), definitions = new class {
 	jobs = new Map();
 	gangs = new Map();
 	constructor() {
@@ -1172,19 +1172,17 @@ new class {
 	}
 	job(name) {
 		let def = this.jobs.get(name);
-		return def === void 0 && this.jobs.set(name, def = core$11.GetJobDefinition(name) ?? null), def;
+		return def === void 0 && this.jobs.set(name, def = core$12.GetJobDefinition(name) ?? null), def;
 	}
 	gang(name) {
 		let def = this.gangs.get(name);
-		return def === void 0 && this.gangs.set(name, def = core$11.GetGangDefinition(name) ?? null), def;
+		return def === void 0 && this.gangs.set(name, def = core$12.GetGangDefinition(name) ?? null), def;
 	}
-}();
-// ../../../packages/lib/src/server/command.ts
-const resource = GetCurrentResourceName(), log$6 = createLogger(resource);
+}(), resource = GetCurrentResourceName(), log$7 = createLogger(resource);
 let texts = null;
 const t = (key, ...args) => formatText((texts ??= loadLocaleTexts(CORE.resource))[key] ?? key, args);
 function reply$1(source, text, kind) {
-	source > 0 ? notify(source, text, kind) : log$6.info(text);
+	source > 0 ? notify(source, text, kind) : log$7.info(text);
 }
 var Command = class {
 	params;
@@ -1219,7 +1217,7 @@ var Command = class {
 		if (!this.allowed(source, name)) return reply$1(source, t("COMMAND_NOT_ALLOWED"), "error");
 		let args = this.parse(raw);
 		if (typeof args == "string") return reply$1(source, args, "error"), reply$1(source, t("COMMAND_USAGE", this.usage), "info");
-		let fail = (error) => log$6.error(`command /${name} failed`, error);
+		let fail = (error) => log$7.error(`command /${name} failed`, error);
 		try {
 			let result = this.handler(source, args, line);
 			result instanceof Promise && result.catch(fail);
@@ -1282,7 +1280,7 @@ function addCommand(name, options, handler) {
 createLogger(GetCurrentResourceName()), createLogger("aicore-lib");
 // ../../../packages/lib/src/fivem/byResource.ts
 const plateOf = (vehicle) => GetVehicleNumberPlateText(vehicle).trim().toUpperCase();
-let log$3 = null;
+let log$4 = null;
 var ScheduledJob = class {
 	interval;
 	fn;
@@ -1320,7 +1318,7 @@ var ScheduledJob = class {
 		}
 		this.quietUntil = now + 1e4;
 		let more = this.skipped ? ` (+${this.skipped} more)` : "";
-		this.skipped = 0, log$3 ??= createLogger(GetCurrentResourceName()), log$3.error(`job "${this.name}" failed${more}`, error instanceof Error ? error.stack ?? error.message : error);
+		this.skipped = 0, log$4 ??= createLogger(GetCurrentResourceName()), log$4.error(`job "${this.name}" failed${more}`, error instanceof Error ? error.stack ?? error.message : error);
 	}
 }, Group = class {
 	interval;
@@ -1472,21 +1470,21 @@ var Mirror = class {
 	}
 };
 // ../../../packages/lib/src/server/world.ts
-const core$10 = resourceExport(CORE.resource), world = {
-	getWeather: () => core$10.GetWeather(),
-	setWeather: (type) => core$10.SetWeather(type),
-	getTime: () => core$10.GetTime(),
-	setTime: (hour, minute = 0) => core$10.SetTime(hour, minute),
-	setBlackout: (on) => core$10.SetBlackout(on),
-	freezeTime: (on) => core$10.FreezeTime(on)
+const core$11 = resourceExport(CORE.resource), world = {
+	getWeather: () => core$11.GetWeather(),
+	setWeather: (type) => core$11.SetWeather(type),
+	getTime: () => core$11.GetTime(),
+	setTime: (hour, minute = 0) => core$11.SetTime(hour, minute),
+	setBlackout: (on) => core$11.SetBlackout(on),
+	freezeTime: (on) => core$11.FreezeTime(on)
 };
 resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/medical.ts
-const core$4 = resourceExport(CORE.resource), medical = {
-	revive: (source) => core$4.RevivePlayer(source),
-	heal: (source) => core$4.HealPlayer(source),
-	isDead: (source) => core$4.IsPlayerDead(source),
-	provider: () => core$4.GetMedicalSystem()
+const core$5 = resourceExport(CORE.resource), medical = {
+	revive: (source) => core$5.RevivePlayer(source),
+	heal: (source) => core$5.HealPlayer(source),
+	isDead: (source) => core$5.IsPlayerDead(source),
+	provider: () => core$5.GetMedicalSystem()
 };
 resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/index.ts
@@ -1954,7 +1952,7 @@ function commitControls(change) {
 	});
 }
 // resource/server/actions.ts
-const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) => GetPlayerPed(String(source)), pos = (source) => ({ ...coordsOf(source) }), name = (source) => GetPlayerName(String(source)) || String(source), targetName = (target) => `${name(target)} (${target})`, log$2 = (message, source, target, metadata) => aiLog("actions", message, {
+const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) => GetPlayerPed(String(source)), pos = (source) => ({ ...coordsOf(source) }), name$1 = (source) => GetPlayerName(String(source)) || String(source), targetName = (target) => `${name$1(target)} (${target})`, log$3 = (message, source, target, metadata) => aiLog("actions", message, {
 	source: source > 0 ? source : void 0,
 	target,
 	metadata
@@ -1963,26 +1961,26 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		return emitNet(EVENTS.toggleNoclip, source), null;
 	},
 	tpm(source) {
-		return emitNet(EVENTS.teleport, source, null), log$2("teleported to the waypoint", source), null;
+		return emitNet(EVENTS.teleport, source, null), log$3("teleported to the waypoint", source), null;
 	},
 	tp(source, point) {
-		return emitNet(EVENTS.teleport, source, point), log$2("teleported to coordinates", source, void 0, { ...point }), null;
+		return emitNet(EVENTS.teleport, source, point), log$3("teleported to coordinates", source, void 0, { ...point }), null;
 	},
 	goto(source, target) {
 		if (target === source || !isOnline(target)) return "ERR_TARGET";
 		let point = pos(target);
-		return emitNet(EVENTS.teleport, source, point), log$2("went to a player", source, target, point), null;
+		return emitNet(EVENTS.teleport, source, point), log$3("went to a player", source, target, point), null;
 	},
 	bring(source, target) {
 		if (target === source || !isOnline(target)) return "ERR_TARGET";
 		let point = pos(source);
-		return emitNet(EVENTS.teleport, target, point), notify(target, Locale("NOTIFY_BROUGHT"), "info"), log$2("brought a player", source, target, point), null;
+		return emitNet(EVENTS.teleport, target, point), notify(target, Locale("NOTIFY_BROUGHT"), "info"), log$3("brought a player", source, target, point), null;
 	},
 	heal(source, target) {
-		return medical.provider() === null ? "ERR_NO_DEATH" : isOnline(target) ? medical.isDead(target) ? "ERR_DOWN" : (medical.heal(target), target !== source && notify(target, Locale("NOTIFY_HEALED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_HEALED", name(target)), "success"), log$2("healed a player", source, target), null) : "ERR_TARGET";
+		return medical.provider() === null ? "ERR_NO_DEATH" : isOnline(target) ? medical.isDead(target) ? "ERR_DOWN" : (medical.heal(target), target !== source && notify(target, Locale("NOTIFY_HEALED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_HEALED", name$1(target)), "success"), log$3("healed a player", source, target), null) : "ERR_TARGET";
 	},
 	revive(source, target) {
-		return medical.provider() === null ? "ERR_NO_DEATH" : isOnline(target) ? (medical.revive(target) || medical.heal(target), target !== source && notify(target, Locale("NOTIFY_REVIVED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_REVIVED", name(target)), "success"), log$2("revived a player", source, target), null) : "ERR_TARGET";
+		return medical.provider() === null ? "ERR_NO_DEATH" : isOnline(target) ? (medical.revive(target) || medical.heal(target), target !== source && notify(target, Locale("NOTIFY_REVIVED_BY"), "success"), source > 0 && notify(source, Locale("NOTIFY_REVIVED", name$1(target)), "success"), log$3("revived a player", source, target), null) : "ERR_TARGET";
 	},
 	async car(source, model) {
 		let hashName = model.toLowerCase();
@@ -2009,7 +2007,7 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 			keysTo: source,
 			purpose: "temporary",
 			persistent: !1
-		}) === null ? "ERR_VEHICLE" : (notify(source, Locale("NOTIFY_CAR_SPAWNED", hashName), "success"), log$2("spawned a vehicle", source, void 0, {
+		}) === null ? "ERR_VEHICLE" : (notify(source, Locale("NOTIFY_CAR_SPAWNED", hashName), "success"), log$3("spawned a vehicle", source, void 0, {
 			model: hashName,
 			...p
 		}), null);
@@ -2022,7 +2020,7 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 			plate: plateOf(vehicle),
 			...pos(source)
 		};
-		return DeleteEntity(vehicle), notify(source, Locale("NOTIFY_DV_DONE"), "success"), log$2("deleted a vehicle", source, void 0, metadata), null;
+		return DeleteEntity(vehicle), notify(source, Locale("NOTIFY_DV_DONE"), "success"), log$3("deleted a vehicle", source, void 0, metadata), null;
 	},
 	coords(source) {
 		return emitNet(EVENTS.coords, source), null;
@@ -2034,15 +2032,15 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		let message = text.trim().slice(0, 300);
 		if (!message) return "ERR_MESSAGE_EMPTY";
 		let { announceKind, announceSeconds } = content.controls;
-		return notify(-1, Locale("NOTIFY_ANNOUNCE", message), announceKind, announceSeconds * 1e3), log$2("announced", source, void 0, { text: message }), null;
+		return notify(-1, Locale("NOTIFY_ANNOUNCE", message), announceKind, announceSeconds * 1e3), log$3("announced", source, void 0, { text: message }), null;
 	},
 	warn(source, target, reason) {
 		let text = reason.trim().slice(0, 300);
-		return text ? target === source || !isOnline(target) ? "ERR_TARGET" : (emitNet(EVENTS.warned, target, text), source > 0 && notify(source, Locale("NOTIFY_WARNED", targetName(target)), "success"), log$2("warned a player", source, target, { reason: text }), null) : "ERR_REASON_EMPTY";
+		return text ? target === source || !isOnline(target) ? "ERR_TARGET" : (emitNet(EVENTS.warned, target, text), source > 0 && notify(source, Locale("NOTIFY_WARNED", targetName(target)), "success"), log$3("warned a player", source, target, { reason: text }), null) : "ERR_REASON_EMPTY";
 	},
 	giveItem(source, target, item, count) {
 		let name = item.toLowerCase();
-		return !/^[a-z0-9_-]{1,48}$/.test(name) || !inventory.getItemDefinition(name) ? "ERR_ITEM" : !Number.isInteger(count) || count < 1 || count > 1e4 ? "ERR_COUNT" : inventory.addItem(target, name, count) ? (notify(source, Locale("NOTIFY_ITEM_GIVEN", count, name, targetName(target)), "success"), log$2("gave an item", source, target, {
+		return !/^[a-z0-9_-]{1,48}$/.test(name) || !inventory.getItemDefinition(name) ? "ERR_ITEM" : !Number.isInteger(count) || count < 1 || count > 1e4 ? "ERR_COUNT" : inventory.addItem(target, name, count) ? (notify(source, Locale("NOTIFY_ITEM_GIVEN", count, name, targetName(target)), "success"), log$3("gave an item", source, target, {
 			item: name,
 			count
 		}), null) : "ERR_ITEM_FULL";
@@ -2051,13 +2049,13 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		let name = item.toLowerCase(), has = inventory.getItemCount(target, name);
 		if (has <= 0) return "ERR_ITEM_NONE";
 		let take = count > 0 ? Math.min(count, has) : has;
-		return inventory.removeItem(target, name, take) ? (notify(source, Locale("NOTIFY_ITEM_REMOVED", take, name, targetName(target)), "success"), log$2("removed an item", source, target, {
+		return inventory.removeItem(target, name, take) ? (notify(source, Locale("NOTIFY_ITEM_REMOVED", take, name, targetName(target)), "success"), log$3("removed an item", source, target, {
 			item: name,
 			count: take
 		}), null) : "ERR_ITEM_NONE";
 	},
 	clearInventory(source, target) {
-		return inventory.clearInventory(target), notify(source, Locale("NOTIFY_INVENTORY_CLEARED", targetName(target)), "success"), log$2("cleared an inventory", source, target), null;
+		return inventory.clearInventory(target), notify(source, Locale("NOTIFY_INVENTORY_CLEARED", targetName(target)), "success"), log$3("cleared an inventory", source, target), null;
 	},
 	giveKeys(source, target) {
 		if (source <= 0) return "ERR_PLAYER_ONLY";
@@ -2065,12 +2063,95 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 		if (!vehicle) return "ERR_NO_VEHICLE";
 		vehicleKeys.give(target, vehicle, "temporary");
 		let plate = plateOf(vehicle);
-		return notify(source, Locale("NOTIFY_KEYS_GIVEN", plate, targetName(target)), "success"), log$2("gave vehicle keys", source, target, { plate }), null;
+		return notify(source, Locale("NOTIFY_KEYS_GIVEN", plate, targetName(target)), "success"), log$3("gave vehicle keys", source, target, { plate }), null;
 	},
 	openInventory(source, target) {
-		return source <= 0 ? "ERR_PLAYER_ONLY" : inventory.openInventory(source, target) ? (log$2("opened an inventory", source, target), null) : "ERR_INVENTORY";
+		return source <= 0 ? "ERR_PLAYER_ONLY" : inventory.openInventory(source, target) ? (log$3("opened an inventory", source, target), null) : "ERR_INVENTORY";
 	}
-}, log$1 = createLogger(ResourceName);
+}, core$1 = resourceExport("ai-core"), name = (source) => `${GetPlayerName(String(source)) || source} (${source})`, log$2 = (message, source, target, metadata) => aiLog("actions", message, {
+	source: source > 0 ? source : void 0,
+	target,
+	metadata
+}), tell = (source, text) => {
+	source > 0 ? notify(source, text, "success") : console.log(text);
+}, isAdmin = (source) => !!IsPlayerAceAllowed(String(source), ADMIN.ace), PERMISSION = /^[a-z0-9_]{1,24}$/, manage = new class {
+	closed = null;
+	constructor() {
+		core$1.AddConnectionCheck("ai-admin:closed", (source) => this.closed !== null && !isAdmin(source) ? Locale("KICK_CLOSED", this.closed) : null);
+	}
+	setJob(source, target, job, grade) {
+		if (!isOnline(target)) return "ERR_TARGET";
+		if (job === "unemployed") for (let m of core$1.GetJobs(target) ?? []) core$1.RemoveJob(target, m.job);
+		else {
+			let def = definitions.job(job);
+			if (!def) return "ERR_JOB";
+			if (!def.grades[grade]) return "ERR_GRADE";
+			if (!core$1.SetJob(target, job, grade)) return "ERR_JOB";
+		}
+		return tell(source, Locale("NOTIFY_JOB_SET", name(target), job, grade)), log$2("set a job", source, target, {
+			job,
+			grade
+		}), null;
+	}
+	setGang(source, target, gang, grade) {
+		if (!isOnline(target)) return "ERR_TARGET";
+		if (gang === "none") for (let m of core$1.GetGangs(target) ?? []) core$1.RemoveGang(target, m.gang);
+		else {
+			let def = definitions.gang(gang);
+			if (!def) return "ERR_GANG";
+			if (!def.grades[grade]) return "ERR_GRADE";
+			if (!core$1.SetGang(target, gang, grade)) return "ERR_GANG";
+		}
+		return tell(source, Locale("NOTIFY_GANG_SET", name(target), gang, grade)), log$2("set a gang", source, target, {
+			gang,
+			grade
+		}), null;
+	}
+	money(source, target, account, amount, set) {
+		return isOnline(target) ? core$1.GetAccountTypes()[account] ? !Number.isInteger(amount) || amount < +!set || amount > 1e9 || !(set ? core$1.SetMoney(target, account, amount, "admin") : core$1.AddMoney(target, account, amount, "admin")) ? "ERR_AMOUNT" : (tell(source, Locale(set ? "NOTIFY_MONEY_SET" : "NOTIFY_MONEY_GIVEN", name(target), account, amount)), log$2(set ? "set money" : "gave money", source, target, {
+			account,
+			amount
+		}), null) : "ERR_ACCOUNT" : "ERR_TARGET";
+	}
+	showJob(source) {
+		let current = core$1.GetCurrentJob(source);
+		if (!current) return "ERR_PLAYER_ONLY";
+		let def = definitions.job(current.job), duty = online.dutyJob(source) === current.job;
+		return notify(source, Locale("NOTIFY_JOB_INFO", def?.label ?? current.job, def?.grades[current.grade]?.label ?? String(current.grade), Locale(duty ? "NOTIFY_ON_DUTY" : "NOTIFY_OFF_DUTY")), "info"), null;
+	}
+	showGang(source) {
+		let active = core$1.GetActiveGang(source), grade = active ? online.gangGrade(source, active) : null;
+		if (!active || grade === null) return notify(source, Locale("NOTIFY_NO_GANG"), "info"), null;
+		let def = definitions.gang(active);
+		return notify(source, Locale("NOTIFY_GANG_INFO", def?.label ?? active, def?.grades[grade]?.label ?? String(grade)), "info"), null;
+	}
+	deleteAll(source, kind) {
+		let players = new Set(), ridden = new Set();
+		for (let id of getPlayers()) {
+			let ped = GetPlayerPed(id);
+			players.add(ped);
+			let vehicle = GetVehiclePedIsIn(ped, !1);
+			vehicle && ridden.add(vehicle);
+		}
+		let list = kind === "vehicles" ? GetAllVehicles() : kind === "peds" ? GetAllPeds() : GetAllObjects(), count = 0;
+		for (let entity of list) players.has(entity) || ridden.has(entity) || (DeleteEntity(entity), count++);
+		return tell(source, Locale("NOTIFY_DELETED_ALL", count)), log$2(`deleted every ${kind}`, source, void 0, { count }), null;
+	}
+	permission(source, target, permission, add) {
+		if (!isOnline(target)) return "ERR_TARGET";
+		let group = permission.toLowerCase();
+		return PERMISSION.test(group) ? (ExecuteCommand(`${add ? "add_principal" : "remove_principal"} player.${target} group.${group}`), tell(source, Locale(add ? "NOTIFY_PERMISSION_ADDED" : "NOTIFY_PERMISSION_REMOVED", name(target), group)), log$2(add ? "added a permission" : "removed a permission", source, target, { group }), null) : "ERR_PERMISSION";
+	}
+	close(source, reason) {
+		if (this.closed !== null) return "ERR_ALREADY_CLOSED";
+		this.closed = reason?.trim().slice(0, 200) || Locale("KICK_NO_REASON");
+		for (let id of getPlayers()) isAdmin(Number(id)) || DropPlayer(id, Locale("KICK_CLOSED", this.closed));
+		return tell(source, Locale("NOTIFY_SERVER_CLOSED")), log$2("closed the server", source, void 0, { reason: this.closed }), null;
+	}
+	open(source) {
+		return this.closed === null ? "ERR_ALREADY_OPEN" : (this.closed = null, tell(source, Locale("NOTIFY_SERVER_OPENED")), log$2("opened the server", source), null);
+	}
+}(), log$1 = createLogger(ResourceName);
 function done(source, ok, text, change) {
 	return ok ? (source > 0 ? notify(source, text, "success") : log$1.info(text), commitControls(change), aiLog("actions", "changed the world", {
 		source: source > 0 ? source : void 0,
@@ -2273,6 +2354,93 @@ addCommand("giveitem", {
 	restricted: !0,
 	params: [optionalId]
 }, (source, args) => answer(source, actions.giveKeys(source, args.id ?? source)));
+const gradeParam = {
+	name: "grade",
+	type: "number",
+	help: Locale("COMMAND_P_GRADE")
+};
+addCommand("setjob", {
+	help: Locale("COMMAND_SETJOB"),
+	restricted: !0,
+	params: [
+		id,
+		{
+			name: "job",
+			type: "string",
+			help: Locale("COMMAND_P_JOB")
+		},
+		gradeParam
+	]
+}, (source, args) => reply(source, manage.setJob(source, args.id, args.job, args.grade))), addCommand("setgang", {
+	help: Locale("COMMAND_SETGANG"),
+	restricted: !0,
+	params: [
+		id,
+		{
+			name: "gang",
+			type: "string",
+			help: Locale("COMMAND_P_GANG")
+		},
+		gradeParam
+	]
+}, (source, args) => reply(source, manage.setGang(source, args.id, args.gang, args.grade))), addCommand("job", { help: Locale("COMMAND_JOB") }, (source) => reply(source, source > 0 ? manage.showJob(source) : "ERR_PLAYER_ONLY")), addCommand("gang", { help: Locale("COMMAND_GANG") }, (source) => reply(source, source > 0 ? manage.showGang(source) : "ERR_PLAYER_ONLY"));
+const moneyParams = [
+	id,
+	{
+		name: "account",
+		type: "string",
+		help: Locale("COMMAND_P_ACCOUNT")
+	},
+	{
+		name: "amount",
+		type: "number",
+		help: Locale("COMMAND_P_AMOUNT")
+	}
+];
+addCommand(["givemoney", "giveaccountmoney"], {
+	help: Locale("COMMAND_GIVEMONEY"),
+	restricted: !0,
+	params: moneyParams
+}, (source, args) => reply(source, manage.money(source, args.id, args.account, args.amount, !1))), addCommand(["setmoney", "setaccountmoney"], {
+	help: Locale("COMMAND_SETMONEY"),
+	restricted: !0,
+	params: moneyParams
+}, (source, args) => reply(source, manage.money(source, args.id, args.account, args.amount, !0))), addCommand("dvall", {
+	help: Locale("COMMAND_DVALL"),
+	restricted: !0
+}, (source) => reply(source, manage.deleteAll(source, "vehicles"))), addCommand("dvp", {
+	help: Locale("COMMAND_DVP"),
+	restricted: !0
+}, (source) => reply(source, manage.deleteAll(source, "peds"))), addCommand("dvo", {
+	help: Locale("COMMAND_DVO"),
+	restricted: !0
+}, (source) => reply(source, manage.deleteAll(source, "objects")));
+const permissionParams = [id, {
+	name: "permission",
+	type: "string",
+	help: Locale("COMMAND_P_PERMISSION")
+}];
+addCommand("addpermission", {
+	help: Locale("COMMAND_ADDPERMISSION"),
+	restricted: !0,
+	params: permissionParams
+}, (source, args) => reply(source, manage.permission(source, args.id, args.permission, !0))), addCommand("removepermission", {
+	help: Locale("COMMAND_REMOVEPERMISSION"),
+	restricted: !0,
+	params: permissionParams
+}, (source, args) => reply(source, manage.permission(source, args.id, args.permission, !1))), addCommand("closeserver", {
+	help: Locale("COMMAND_CLOSESERVER"),
+	restricted: !0,
+	params: [{
+		name: "reason",
+		type: "longString",
+		help: Locale("COMMAND_P_REASON"),
+		optional: !0
+	}]
+}, (source, args) => reply(source, manage.close(source, args.reason))), addCommand("openserver", {
+	help: Locale("COMMAND_OPENSERVER"),
+	restricted: !0
+}, (source) => reply(source, manage.open(source)));
 // resource/server/controls.ts
 const core = resourceExport("ai-core"), WORLD_FIELDS = [
 	"weather",
@@ -2308,7 +2476,7 @@ new class {
 	id: Number(p),
 	name: GetPlayerName(p)
 })).sort((a, b) => a.id - b.id), {
-	guards: [isAdmin()],
+	guards: [isAdmin$1()],
 	rate: {
 		count: 2,
 		windowMs: 1e3
@@ -2317,7 +2485,7 @@ new class {
 	weather: world.getWeather(),
 	time: world.getTime()
 }), {
-	guards: [isAdmin()],
+	guards: [isAdmin$1()],
 	rate: {
 		count: 2,
 		windowMs: 1e3
@@ -2364,7 +2532,7 @@ function runAction(source, action, target, value) {
 // resource/server/index.ts
 onClientCallback(EVENTS.action, {
 	args: parseAction,
-	guards: [isAdmin()],
+	guards: [isAdmin$1()],
 	lock: !0
 }, async (source, action, target, value) => {
 	let error = await runAction(source, action, target, value);
@@ -2382,7 +2550,7 @@ onClientCallback(EVENTS.action, {
 		});
 		return items.length === list.length ? [id, items] : null;
 	},
-	guards: [isAdmin()],
+	guards: [isAdmin$1()],
 	lock: !0
 }, (source, target, items) => {
 	let who = target ?? source;
