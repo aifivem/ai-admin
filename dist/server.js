@@ -252,6 +252,12 @@ const CORE = {
 	pvpStateKey: "ai:pvp",
 	medicalStateKey: "ai:medical",
 	clientDeadEvent: "ai-core:client:dead",
+	mdtStateKey: "ai:mdt",
+	billsEvent: "ai-core:client:bills",
+	payBillCallback: "ai-core:payBill",
+	clientSeatbeltEvent: "ai-core:client:seatbelt",
+	stressRelayEvent: "ai-core:client:stress",
+	notifyStateKey: "ai:notify",
 	charactersCallback: "ai-core:characters",
 	createCharacterCallback: "ai-core:createCharacter",
 	deleteCharacterCallback: "ai-core:deleteCharacter",
@@ -301,7 +307,8 @@ const CORE = {
 	progressForCallback: "ai-lib:progressFor",
 	progressForCancelEvent: "ai-lib:client:progressForCancel",
 	minigameForCallback: "ai-lib:minigameFor",
-	zoneEvent: "ai-lib:client:zone"
+	zoneEvent: "ai-lib:client:zone",
+	modelPointEvent: "ai-lib:client:modelPoint"
 }, named = new Set();
 function registerExport(name, handler) {
 	named.add(name), globalThis.exports(name, handler);
@@ -478,7 +485,7 @@ function toPatch(value) {
 		default: return null;
 	}
 }
-const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$18 = resourceExport(CORE.resource), ERR = {
+const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$26 = resourceExport(CORE.resource), ERR = {
 	type: "ADMIN_ERR_TYPE",
 	range: "ADMIN_ERR_RANGE",
 	length: "ADMIN_ERR_LENGTH",
@@ -492,7 +499,7 @@ const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(va
 		if (cached && Date.now() - cached.at < 2e3) return cached.values.size > 0 ? cached.values : null;
 		let list = [];
 		try {
-			list = core$18.GetLookupValues(source);
+			list = core$26.GetLookupValues(source);
 		} catch {}
 		let values = new Set(Array.isArray(list) ? list.filter((v) => typeof v == "string") : []);
 		return this.lists.set(source, {
@@ -757,7 +764,7 @@ function writeSchema(resource, name, text, log) {
 	(0, node_fs_promises.mkdir)(dir, { recursive: !0 }).then(() => (0, node_fs_promises.writeFile)(`${dir}/${name}.schema.json`, text, "utf8")).catch((error) => log.error(`writing ${resource}/${path} failed`, error));
 }
 // ../../../packages/lib/src/server/admin/panel.ts
-const core$17 = resourceExport(CORE.resource);
+const core$25 = resourceExport(CORE.resource);
 var AdminPanel = class {
 	schema;
 	data = new Map();
@@ -776,7 +783,7 @@ var AdminPanel = class {
 		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelData", () => this.dataSnapshot()), registerExport("AdminPanelSummary", () => this.summary()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges), { rate: {
 			count: 4,
 			windowMs: 1e4
-		} }), setImmediate(() => core$17.RegisterAdminPanel(this.resource));
+		} }), setImmediate(() => core$25.RegisterAdminPanel(this.resource));
 	}
 	get(file) {
 		return this.data.get(file) ?? {};
@@ -890,7 +897,7 @@ var AdminPanel = class {
 		let spec = this.schema.files[file], data = this.get(file), value = key === void 0 ? data : data[key] ?? null;
 		this.dataFiles.get(file)?.write(data), this.views.changed(file, key, value);
 		for (let handler of this.handlers.get(file) ?? []) handler(key, value);
-		if (core$17.AdminPanelChanged({
+		if (core$25.AdminPanelChanged({
 			resource: this.resource,
 			file,
 			key,
@@ -937,19 +944,21 @@ function notify(source, text, kind = "info", duration) {
 	emitNet(LIB_UI.notifyEvent, source, notification);
 }
 // ../../../packages/lib/src/server/inventory.ts
-const core$16 = resourceExport(CORE.resource), inventory = {
-	addItem: (inv, item, count = 1, metadata, slot) => core$16.AddItem(inv, item, count, metadata, slot),
-	removeItem: (inv, item, count = 1, metadata, slot) => core$16.RemoveItem(inv, item, count, metadata, slot),
-	getItemCount: (inv, item, metadata) => core$16.GetItemCount(inv, item, metadata),
-	hasItem: (inv, item, count = 1) => core$16.HasItem(inv, item, count),
-	canCarryItem: (inv, item, count = 1, metadata) => core$16.CanCarryItem(inv, item, count, metadata),
-	getItems: (inv) => core$16.GetItems(inv),
-	clearInventory: (inv) => core$16.ClearInventory(inv),
-	registerStash: (name, label, slots, maxWeight, jobs = []) => core$16.RegisterStash(name, label, slots, maxWeight, jobs),
-	openInventory: (source, inv) => core$16.OpenInventory(source, inv),
-	registerUsableItem: (name, handler) => core$16.RegisterUsableItem(name, handler),
-	getItemDefinition: (name) => core$16.GetItemDefinition(name)
-}, core$15 = resourceExport(CORE.resource);
+const core$24 = resourceExport(CORE.resource), inventory = {
+	addItem: (inv, item, count = 1, metadata, slot) => core$24.AddItem(inv, item, count, metadata, slot),
+	removeItem: (inv, item, count = 1, metadata, slot) => core$24.RemoveItem(inv, item, count, metadata, slot),
+	getItemCount: (inv, item, metadata) => core$24.GetItemCount(inv, item, metadata),
+	hasItem: (inv, item, count = 1) => core$24.HasItem(inv, item, count),
+	canCarryItem: (inv, item, count = 1, metadata) => core$24.CanCarryItem(inv, item, count, metadata),
+	getItems: (inv) => core$24.GetItems(inv),
+	clearInventory: (inv) => core$24.ClearInventory(inv),
+	registerStash: (name, label, slots, maxWeight, jobs = []) => core$24.RegisterStash(name, label, slots, maxWeight, jobs),
+	openInventory: (source, inv) => core$24.OpenInventory(source, inv),
+	registerUsableItem: (name, handler) => core$24.RegisterUsableItem(name, handler),
+	registerShop: (name, label, items) => core$24.RegisterShop(name, label, items),
+	openShop: (source, name) => core$24.OpenShop(source, name),
+	getItemDefinition: (name) => core$24.GetItemDefinition(name)
+}, core$23 = resourceExport(CORE.resource);
 function reindex(index, source, before, after) {
 	for (let name of before) {
 		let set = index.get(name);
@@ -977,11 +986,11 @@ var OnlinePlayers = class {
 				gangs: [],
 				gangNames: [],
 				duty: null
-			}), this.setJobs(source, core$15.GetJobs(source) ?? []), this.setGangs(source, core$15.GetGangs(source) ?? []), this.setDuty(source, core$15.GetDutyJob(source));
+			}), this.setJobs(source, core$23.GetJobs(source) ?? []), this.setGangs(source, core$23.GetGangs(source) ?? []), this.setDuty(source, core$23.GetDutyJob(source));
 		};
 		on(CORE.playerLoadedEvent, load), on(CORE.playerUnloadedEvent, (source) => this.drop(source)), on(CORE.jobsChangedEvent, (source, jobs) => this.setJobs(source, jobs)), on(CORE.gangsChangedEvent, (source, gangs) => this.setGangs(source, gangs)), on(CORE.dutyChangedEvent, (source, job) => this.setDuty(source, job));
-		for (let source of core$15.GetLoadedSources()) {
-			let character = core$15.GetCharacter(source);
+		for (let source of core$23.GetLoadedSources()) {
+			let character = core$23.GetCharacter(source);
 			character && load(source, character);
 		}
 	}
@@ -1077,10 +1086,14 @@ var OnlinePlayers = class {
 		return this.start(), this.onDuty.get(job) ?? EMPTY;
 	}
 };
-const EMPTY = new Set(), online = new OnlinePlayers(), core$14 = resourceExport(CORE.resource), vehicleKeys = {
-	give: (source, vehicle, purpose = "temporary") => core$14.GiveVehicleKeys(source, vehicle, purpose),
-	remove: (source, vehicle) => core$14.RemoveVehicleKeys(source, vehicle),
-	has: (source, vehicle) => core$14.HasVehicleKeys(source, vehicle)
+const EMPTY = new Set(), online = new OnlinePlayers(), core$22 = resourceExport(CORE.resource), vehicleKeys = {
+	give: (source, vehicle, purpose = "temporary") => core$22.GiveVehicleKeys(source, vehicle, purpose),
+	remove: (source, vehicle) => core$22.RemoveVehicleKeys(source, vehicle),
+	has: (source, vehicle) => core$22.HasVehicleKeys(source, vehicle)
+}, core$21 = resourceExport(CORE.resource), fuel = {
+	get: (vehicle) => core$21.GetVehicleFuel(vehicle),
+	set: (vehicle, level) => core$21.SetVehicleFuel(vehicle, level),
+	provider: () => core$21.GetFuelSystem()
 }, TYPES = new Set([
 	"automobile",
 	"bike",
@@ -1126,7 +1139,7 @@ async function spawnVehicle(options) {
 	let plate = (options.plate ?? randomPlate()).slice(0, 8);
 	SetVehicleNumberPlateText(vehicle, plate), options.bucket !== void 0 && SetEntityRoutingBucket(vehicle, options.bucket), options.locked && SetVehicleDoorsLocked(vehicle, 2);
 	let state = Entity(vehicle).state;
-	options.fuel !== void 0 && state.set(VEHICLE_BAGS.fuel, options.fuel, !0), options.props && state.set(VEHICLE_BAGS.props, options.props, !0), options.setup && state.set(VEHICLE_BAGS.setup, options.setup, !0);
+	options.fuel !== void 0 && fuel.set(vehicle, options.fuel), options.props && state.set(VEHICLE_BAGS.props, options.props, !0), options.setup && state.set(VEHICLE_BAGS.setup, options.setup, !0);
 	for (let [key, value] of Object.entries(options.bags ?? {})) state.set(key, value, !0);
 	if (options.keysTo !== void 0) {
 		let synced = await waitFor(() => !DoesEntityExist(vehicle) || GetVehicleNumberPlateText(vehicle).trim() === plate.trim() || void 0, 3e3).catch(() => !1);
@@ -1172,7 +1185,7 @@ on(CORE.playerUnloadedEvent, (source) => {
 	settle && settle(!1);
 });
 // ../../../packages/lib/src/server/definitions.ts
-const core$12 = resourceExport("ai-core"), definitions = new class {
+const core$19 = resourceExport("ai-core"), definitions = new class {
 	jobs = new Map();
 	gangs = new Map();
 	constructor() {
@@ -1182,11 +1195,11 @@ const core$12 = resourceExport("ai-core"), definitions = new class {
 	}
 	job(name) {
 		let def = this.jobs.get(name);
-		return def === void 0 && this.jobs.set(name, def = core$12.GetJobDefinition(name) ?? null), def;
+		return def === void 0 && this.jobs.set(name, def = core$19.GetJobDefinition(name) ?? null), def;
 	}
 	gang(name) {
 		let def = this.gangs.get(name);
-		return def === void 0 && this.gangs.set(name, def = core$12.GetGangDefinition(name) ?? null), def;
+		return def === void 0 && this.gangs.set(name, def = core$19.GetGangDefinition(name) ?? null), def;
 	}
 }(), resource = GetCurrentResourceName(), log$7 = createLogger(resource);
 let texts = null;
@@ -1480,23 +1493,23 @@ var Mirror = class {
 	}
 };
 // ../../../packages/lib/src/server/world.ts
-const core$11 = resourceExport(CORE.resource), world = {
-	getWeather: () => core$11.GetWeather(),
-	setWeather: (type) => core$11.SetWeather(type),
-	getTime: () => core$11.GetTime(),
-	setTime: (hour, minute = 0) => core$11.SetTime(hour, minute),
-	setBlackout: (on) => core$11.SetBlackout(on),
-	freezeTime: (on) => core$11.FreezeTime(on)
+const core$18 = resourceExport(CORE.resource), world = {
+	getWeather: () => core$18.GetWeather(),
+	setWeather: (type) => core$18.SetWeather(type),
+	getTime: () => core$18.GetTime(),
+	setTime: (hour, minute = 0) => core$18.SetTime(hour, minute),
+	setBlackout: (on) => core$18.SetBlackout(on),
+	freezeTime: (on) => core$18.FreezeTime(on)
 };
 resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/medical.ts
-const core$5 = resourceExport(CORE.resource), medical = {
-	revive: (source) => core$5.RevivePlayer(source),
-	heal: (source) => core$5.HealPlayer(source),
-	isDead: (source) => core$5.IsPlayerDead(source),
-	provider: () => core$5.GetMedicalSystem()
+const core$12 = resourceExport(CORE.resource), medical = {
+	revive: (source) => core$12.RevivePlayer(source),
+	heal: (source) => core$12.HealPlayer(source),
+	isDead: (source) => core$12.IsPlayerDead(source),
+	provider: () => core$12.GetMedicalSystem()
 };
-resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
+resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/index.ts
 function isOnline(source) {
 	return !!GetPlayerName(String(source));
