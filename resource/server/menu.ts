@@ -98,6 +98,23 @@ function runAction(
       return actions.openInventory(source, who);
     case "warn":
       return actions.warn(source, who, value ?? "");
+    case "ban": {
+      // "<minutes>:<reason>", 0 minutes = permanent.
+      const text = value ?? "";
+      const at = text.indexOf(":");
+      return at < 1
+        ? "ERR_BAN_LENGTH"
+        : actions.ban(
+            source,
+            who,
+            Number(text.slice(0, at)),
+            text.slice(at + 1),
+          );
+    }
+    case "bans":
+      return actions.bans(source);
+    case "banRecords":
+      return actions.banRecords(source, who);
     case "announce":
       return actions.announce(source, value ?? "");
     case "weather":

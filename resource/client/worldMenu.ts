@@ -7,7 +7,7 @@ import { toWorldState } from "common/controls";
 import { run } from "./tools";
 
 /** A text typed in the input dialog (trimmed), or null when it was closed or left empty. */
-async function typed(
+export async function typed(
   title: string,
   label: string,
   confirm: string,

@@ -1536,7 +1536,20 @@ const core$13 = resourceExport(CORE.resource), medical = {
 resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/stress.ts
 const core$7 = resourceExport(CORE.resource), needs = { refill: (source) => core$7.RefillNeeds(source) };
-resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
+resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
+// ../../../packages/lib/src/server/bans.ts
+const core$3 = resourceExport(CORE.resource), bans = {
+	ban: (target, reason, minutes, by) => new Promise((resolve) => {
+		core$3.BanPlayer(target, reason, minutes, by, resolve) || resolve(null);
+	}),
+	unban: (banId, by) => core$3.UnbanPlayer(banId, by),
+	edit: (banId, edit, by) => core$3.EditBan(banId, edit, by),
+	isBanned: (target) => core$3.IsBanned(target),
+	list: (page = 1) => core$3.GetBans(page),
+	history: (target) => new Promise((resolve) => core$3.GetBanHistory(target, resolve)),
+	search: (query) => new Promise((resolve) => core$3.ListBans(query, resolve))
+};
+resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/index.ts
 function isOnline(source) {
 	return !!GetPlayerName(String(source));
@@ -1570,6 +1583,9 @@ const EVENTS = {
 	"item",
 	"inventory",
 	"warn",
+	"ban",
+	"bans",
+	"banRecords",
 	"announce",
 	"weather",
 	"time",
@@ -2078,6 +2094,29 @@ const owned = new EntityState(VEHICLE_BAGS.owned, stateBoolean), ped = (source) 
 	panel(source) {
 		return emitNet(ADMIN.showEvent, source), null;
 	},
+	ban(source, target, minutes, reason) {
+		let text = reason.trim().slice(0, 255);
+		if (!text) return "ERR_REASON_EMPTY";
+		if (target === source) return "ERR_BAN_SELF";
+		if (!isOnline(target)) return "ERR_TARGET";
+		if (!Number.isInteger(minutes) || minutes < 0) return "ERR_BAN_LENGTH";
+		let who = targetName(target);
+		return bans.ban(target, text, minutes || void 0, source || void 0), source > 0 && notify(source, Locale("NOTIFY_BANNED", who), "success"), null;
+	},
+	bans(source) {
+		return source <= 0 ? "ERR_PLAYER_ONLY" : (emitNet(ADMIN.showEvent, source, { section: "bans" }), null);
+	},
+	banRecords(source, target) {
+		if (source <= 0) return "ERR_PLAYER_ONLY";
+		let charId = online.charId(target), fivem = GetPlayerIdentifierByType(String(target), "fivem");
+		return emitNet(ADMIN.showEvent, source, charId === void 0 ? {
+			section: "bans",
+			search: fivem || void 0
+		} : {
+			section: "players",
+			charId
+		}), null;
+	},
 	announce(source, text) {
 		let message = text.trim().slice(0, 300);
 		if (!message) return "ERR_MESSAGE_EMPTY";
@@ -2568,6 +2607,12 @@ function runAction(source, action, target, value) {
 		}
 		case "inventory": return actions.openInventory(source, who);
 		case "warn": return actions.warn(source, who, value ?? "");
+		case "ban": {
+			let text = value ?? "", at = text.indexOf(":");
+			return at < 1 ? "ERR_BAN_LENGTH" : actions.ban(source, who, Number(text.slice(0, at)), text.slice(at + 1));
+		}
+		case "bans": return actions.bans(source);
+		case "banRecords": return actions.banRecords(source, who);
 		case "announce": return actions.announce(source, value ?? "");
 		case "weather": return worldActions.weather(source, value ?? "");
 		case "time": {
