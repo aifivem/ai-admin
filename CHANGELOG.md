@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/aifivem/ai-admin/compare/v0.2.0...v0.3.0) (2026-11-01)
+
+
+### New Features
+
+* **admin:** ban a player and open their ban records from the player menu, Bans in the main menu ([a6c58a0](https://github.com/aifivem/ai-admin/commit/a6c58a0eff1224f7569a00bc6d610489c997e11f))
+
+
+### Code Refactoring
+
+* feature folders, side entries that only import, panel schema per tab ([a55831e](https://github.com/aifivem/ai-admin/commit/a55831e44af854e52183b9382b5a6cb01bd13516))
+
 ## [0.2.0](https://github.com/aifivem/ai-admin/compare/v0.1.1...v0.2.0) (2026-10-31)
 
 
