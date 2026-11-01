@@ -20,8 +20,9 @@ import {
   type PlayerEntry,
 } from "common/admin";
 import type { WorldState } from "common/controls";
-import { actions, type Result } from "./actions";
-import { worldActions } from "./world";
+import { actions } from "./actions";
+import type { Result } from "./actions/result";
+import { worldActions } from "./actions/world";
 
 /** Whether the quick menu may open (it opens nothing for others; every action is checked again). */
 onClientCallback(EVENTS.access, (source) =>

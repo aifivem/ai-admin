@@ -4,44 +4,7 @@ import { Locale } from "common";
 import { EVENTS } from "common/admin";
 import { WEATHERS } from "@aicore-fivem/shared";
 import { toWorldState } from "common/controls";
-import { run } from "./tools";
-
-/** A text typed in the input dialog (trimmed), or null when it was closed or left empty. */
-export async function typed(
-  title: string,
-  label: string,
-  confirm: string,
-): Promise<string | null> {
-  const values = await input({
-    title,
-    confirm,
-    fields: [
-      { name: "text", label, type: "text", maxLength: 300, multiline: true },
-    ],
-  });
-  const text = values?.text;
-  return typeof text === "string" && text.trim() ? text.trim() : null;
-}
-
-/** A message to everyone (style from the panel's Messages tab). */
-export async function announce(): Promise<void> {
-  const text = await typed(
-    Locale("ANNOUNCE_TITLE"),
-    Locale("ANNOUNCE_TEXT"),
-    Locale("ANNOUNCE_CONFIRM"),
-  );
-  if (text) await run("announce", null, text);
-}
-
-/** A warning to one player with the reason they see. */
-export async function warn(target: number, name: string): Promise<void> {
-  const reason = await typed(
-    Locale("WARN_SEND_TITLE", name),
-    Locale("WARN_REASON"),
-    Locale("WARN_SEND"),
-  );
-  if (reason) await run("warn", target, reason);
-}
+import { run } from "../runAction";
 
 async function setTime(): Promise<void> {
   const values = await input({

@@ -10,9 +10,11 @@ import {
 } from "@aicore-fivem/lib/client";
 import { Locale } from "common";
 import { EVENTS, toPlayerEntries, type MenuAction } from "common/admin";
-import { noclip, run, setNoclip } from "./tools";
+import { noclip, setNoclip } from "../noclip/toggle";
+import { run } from "../runAction";
 import { banPlayer } from "./banMenu";
-import { announce, warn, worldMenu } from "./worldMenu";
+import { announce, warn } from "./messages";
+import { worldMenu } from "./worldMenu";
 
 async function spawnVehicle(): Promise<void> {
   const values = await input({

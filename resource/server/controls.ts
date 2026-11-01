@@ -2,7 +2,7 @@ import { resourceExport, world } from "@aicore-fivem/lib/server";
 import { readControls, type Controls } from "common/controls";
 import { actions } from "./actions";
 import { commitControls, panel } from "./content";
-import { worldActions } from "./world";
+import { worldActions } from "./actions/world";
 
 const core = resourceExport("ai-core");
 

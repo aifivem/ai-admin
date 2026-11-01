@@ -1,8 +1,8 @@
 import { BAN_DURATIONS, MENU_BACK } from "@aicore-fivem/shared";
 import { menu } from "@aicore-fivem/lib/client";
 import { Locale } from "common";
-import { run } from "./tools";
-import { typed } from "./worldMenu";
+import { run } from "../runAction";
+import { typed } from "./typed";
 
 /**
  * Bans an online player: the length from a menu, then the reason; the server bans through ai-core (the player is
