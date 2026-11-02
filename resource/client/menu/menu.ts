@@ -2,6 +2,7 @@ import { MENU_BACK } from "@aifivem/shared";
 import {
   callAction,
   input,
+  isResourceStarted,
   itemPicker,
   menu,
   optionalExport,
@@ -13,6 +14,7 @@ import { EVENTS, toPlayerEntries, type MenuAction } from "common/admin";
 import { noclip, setNoclip } from "../noclip/toggle";
 import { run } from "../runAction";
 import { banPlayer } from "./banMenu";
+import { illegalMenu, statusMenu } from "./characterMenu";
 import { announce, warn } from "./messages";
 import { worldMenu } from "./worldMenu";
 
@@ -61,6 +63,9 @@ const PLAYER_ACTIONS = [
   { id: "warn", icon: "triangle-exclamation", label: "MENU_WARN" },
   { id: "ban", icon: "gavel", label: "MENU_BAN" },
   { id: "banRecords", icon: "clock-rotate-left", label: "MENU_BAN_RECORDS" },
+  { id: "status", icon: "utensils", label: "MENU_STATUS" },
+  { id: "paycheck", icon: "money-bill-wave", label: "MENU_PAYCHECK" },
+  { id: "illegal", icon: "mask", label: "MENU_ILLEGAL" },
 ] as const satisfies ReadonlyArray<{
   id: MenuAction;
   icon: string;
@@ -103,6 +108,10 @@ async function playerMenu(): Promise<boolean> {
     else if (chosen?.id === "warn") await warn(player.id, player.name);
     else if (chosen?.id === "ban") {
       if (await banPlayer(player.id, player.name)) continue;
+    } else if (chosen?.id === "status") {
+      if (await statusMenu(player.id, player.name)) continue;
+    } else if (chosen?.id === "illegal") {
+      if (await illegalMenu(player.id, player.name)) continue;
     } else if (chosen) await run(chosen.id, player.id);
     return false;
   }
@@ -135,6 +144,9 @@ export async function openMenu(): Promise<void> {
       { id: "bans", label: Locale("MENU_BANS"), icon: "gavel" },
       { id: "announce", label: Locale("MENU_ANNOUNCE"), icon: "comments" },
       { id: "world", label: Locale("MENU_WORLD"), icon: "snowflake" },
+      ...(isResourceStarted("ai-smallresources")
+        ? [{ id: "npc", label: Locale("MENU_NPC"), icon: "people-group" }]
+        : []),
       ...(hudExports()
         ? [
             {
@@ -171,6 +183,7 @@ export async function openMenu(): Promise<void> {
     case "dv":
     case "panel":
     case "bans":
+    case "npc":
       return run(picked);
   }
 }

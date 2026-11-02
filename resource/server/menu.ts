@@ -5,13 +5,7 @@ import {
   onClientCallback,
   world,
 } from "@aifivem/lib/server";
-import {
-  fail,
-  isRecord,
-  readId,
-  readInt,
-  readText,
-} from "@aifivem/lib/shared";
+import { fail, isRecord, readId, readInt, readText } from "@aifivem/lib/shared";
 import { ADMIN } from "@aifivem/shared";
 import {
   EVENTS,
@@ -128,6 +122,19 @@ function runAction(
       return worldActions.freeze(source, value === "1");
     case "blackout":
       return worldActions.blackout(source, value === "1");
+    case "status": {
+      // "<hunger | thirst | all>:<0-100>"
+      const [need = "", amount = ""] = (value ?? "").split(":");
+      return actions.setStatus(source, who, need, Number(amount || NaN));
+    }
+    case "paycheck":
+      return actions.paycheck(source, who);
+    case "illegal":
+      return value === "1" || value === "0"
+        ? actions.illegal(source, who, value === "1")
+        : "ERR_ILLEGAL_VALUE";
+    case "npc":
+      return actions.npc(source);
     default: {
       const _exhaustive: never = action;
       return _exhaustive;

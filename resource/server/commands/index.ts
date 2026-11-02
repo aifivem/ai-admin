@@ -5,3 +5,5 @@ import "./vehicles";
 import "./panel";
 import "./world";
 import "./items";
+import "./characters";
+import "./entities";

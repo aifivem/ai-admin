@@ -11,3 +11,10 @@ export const optionalId = {
   help: Locale("COMMAND_P_ID_SELF"),
   optional: true,
 } as const;
+/** A cleanup radius in metres. */
+export const radius = {
+  name: "radius",
+  type: "number",
+  help: Locale("COMMAND_P_RADIUS"),
+  optional: true,
+} as const;

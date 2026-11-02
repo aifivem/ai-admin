@@ -4,7 +4,7 @@ import { id } from "../commandParams";
 import { reply } from "../commandReply";
 import { deleteAll } from "./cleanup";
 import { jobActions } from "./jobs";
-import { money } from "./money";
+import { money, moneyByCitizen } from "./money";
 import { permission } from "./permissions";
 import { serverLock } from "./serverLock";
 
@@ -53,18 +53,46 @@ const moneyParams = [
   { name: "account", type: "string", help: Locale("COMMAND_P_ACCOUNT") },
   { name: "amount", type: "number", help: Locale("COMMAND_P_AMOUNT") },
 ] as const;
-addCommand(
-  ["givemoney", "giveaccountmoney"],
-  { help: Locale("COMMAND_GIVEMONEY"), restricted: true, params: moneyParams },
-  (source, args) =>
-    reply(source, money(source, args.id, args.account, args.amount, false)),
-);
-addCommand(
-  ["setmoney", "setaccountmoney"],
-  { help: Locale("COMMAND_SETMONEY"), restricted: true, params: moneyParams },
-  (source, args) =>
-    reply(source, money(source, args.id, args.account, args.amount, true)),
-);
+const moneyCidParams = [
+  { name: "citizenid", type: "string", help: Locale("COMMAND_P_CITIZENID") },
+  moneyParams[1],
+  moneyParams[2],
+] as const;
+const moneyCommands = [
+  { names: ["givemoney", "giveaccountmoney"], mode: "give" },
+  { names: ["setmoney", "setaccountmoney"], mode: "set" },
+  { names: ["removemoney"], mode: "remove" },
+] as const;
+const MONEY_HELP = {
+  give: ["COMMAND_GIVEMONEY", "COMMAND_GIVEMONEYCID"],
+  set: ["COMMAND_SETMONEY", "COMMAND_SETMONEYCID"],
+  remove: ["COMMAND_REMOVEMONEY", "COMMAND_REMOVEMONEYCID"],
+} as const;
+for (const { names, mode } of moneyCommands) {
+  const [help, cidHelp] = MONEY_HELP[mode];
+  addCommand(
+    [...names],
+    { help: Locale(help), restricted: true, params: moneyParams },
+    (source, args) =>
+      reply(source, money(source, args.id, args.account, args.amount, mode)),
+  );
+  // Server ids and ai-core citizenids are both numbers: the citizenid form is its own command.
+  addCommand(
+    `${names[0]}cid`,
+    { help: Locale(cidHelp), restricted: true, params: moneyCidParams },
+    async (source, args) =>
+      reply(
+        source,
+        await moneyByCitizen(
+          source,
+          args.citizenid,
+          args.account,
+          args.amount,
+          mode,
+        ),
+      ),
+  );
+}
 addCommand(
   "dvall",
   { help: Locale("COMMAND_DVALL"), restricted: true },

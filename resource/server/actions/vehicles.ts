@@ -1,8 +1,10 @@
 import {
+  coordsOf,
   EntityState,
   isOnline,
   nearestVehicleTo,
   notify,
+  optionalExport,
   plateOf,
   spawnVehicle,
   stateBoolean,
@@ -10,11 +12,15 @@ import {
   vehicleOf,
   vehicleType,
 } from "@aifivem/lib/server";
-import { VEHICLE_BAGS } from "@aifivem/shared";
+import { normalizePlate } from "@aifivem/lib/shared";
+import { type DeleteByPlateResult, VEHICLE_BAGS } from "@aifivem/shared";
 import { Locale } from "common";
 import { actionLog } from "../actionLog";
 import { content } from "../content";
+import { deleteEntities } from "../entities";
+import { tell } from "../framework/tell";
 import { playerLabel } from "../playerName";
+import { isRadius } from "./entities";
 import { pos } from "./position";
 import type { Result } from "./result";
 
@@ -60,8 +66,24 @@ export const vehicleActions = {
     return null;
   },
 
-  /** Deletes the vehicle the admin sits in, else the closest one within 5 m (an owned one goes to the impound). */
-  dv(source: number): Result {
+  /**
+   * Deletes the vehicle the admin sits in, else the closest one within 5 m; with a radius every vehicle within it
+   * that no player sits in.
+   */
+  dv(source: number, radius?: number): Result {
+    if (radius !== undefined) {
+      if (!isRadius(radius)) return "ERR_RADIUS";
+      const count = deleteEntities("vehicles", {
+        center: coordsOf(source),
+        radius,
+      });
+      notify(source, Locale("NOTIFY_DELETED_ALL", count), "success");
+      actionLog("deleted vehicles nearby", source, undefined, {
+        count,
+        radius,
+      });
+      return null;
+    }
     const vehicle = nearestVehicleTo(source, 5);
     if (!vehicle) return "ERR_NO_VEHICLE";
     const metadata = {
@@ -88,6 +110,41 @@ export const vehicleActions = {
       "success",
     );
     actionLog("gave vehicle keys", source, target, { plate });
+    return null;
+  },
+
+  /**
+   * Deletes an owned vehicle completely (its record and every world copy) through ai-vehicles: no `ref` = the one
+   * the admin sits in, an online player's server id = the one that player sits in, else a plate.
+   */
+  async vehdel(source: number, ref: string | undefined): Promise<Result> {
+    const vehicles = optionalExport("ai-vehicles");
+    if (!vehicles) return "ERR_NO_VEHICLES";
+    const text = ref?.trim() ?? "";
+    const id = /^\d+$/.test(text) ? Number(text) : 0;
+    const rider = !text ? source : isOnline(id) ? id : 0;
+    if (!text && source <= 0) return "ERR_PLATE";
+    const vehicle = rider > 0 ? vehicleOf(rider) : 0;
+    if (rider > 0 && !vehicle)
+      return rider === source ? "ERR_NOT_IN_VEHICLE" : "ERR_TARGET_ON_FOOT";
+    const plate = vehicle ? plateOf(vehicle) : normalizePlate(text);
+    const reply = await new Promise<DeleteByPlateResult>((resolve) =>
+      vehicles.DeleteVehicleByPlate(plate, resolve),
+    );
+    if (!reply.ok)
+      return reply.error === "not_found"
+        ? "ERR_NOT_OWNED"
+        : reply.error === "invalid_plate"
+          ? "ERR_PLATE"
+          : "ERR_VEHDEL";
+    const { entities } = reply;
+    tell(source, Locale("NOTIFY_VEHDEL", plate, entities));
+    const target = rider > 0 && rider !== source ? rider : undefined;
+    actionLog("deleted an owned vehicle", source, target, {
+      plate,
+      id: reply.id,
+      entities,
+    });
     return null;
   },
 };
