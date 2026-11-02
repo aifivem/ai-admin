@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/aifivem/ai-admin/compare/v0.3.0...v0.3.1) (2026-11-02)
+
+
+### Code Refactoring
+
+* import the shared packages from [@aifivem](https://github.com/aifivem) ([fb0364f](https://github.com/aifivem/ai-admin/commit/fb0364f2a840f8f4ddcc6b3c6e76639e959840bc))
+
 ## [0.3.0](https://github.com/aifivem/ai-admin/compare/v0.2.0...v0.3.0) (2026-11-01)
 
 
