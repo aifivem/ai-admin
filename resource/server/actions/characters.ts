@@ -1,6 +1,7 @@
 import {
   illegal,
   isOnline,
+  needs,
   notify,
   online,
   resourceExport,
@@ -51,7 +52,7 @@ async function characterOf(target: number | string): Promise<{
 
 /** Character tools: needs, paycheck, legal / illegal status, the panel's character card. */
 export const characterActions = {
-  /** Hunger, thirst or both (`all`) to `value` (0-100) through ai-core's HUD layer; the player is told. */
+  /** Hunger, thirst or both (`all`) to `value` (0-100) through ai-core's needs; the player is told. */
   setStatus(
     source: number,
     target: number,
@@ -64,7 +65,7 @@ export const characterActions = {
       return "ERR_NEED_VALUE";
     const amount = Math.round(value);
     for (const n of NEEDS[choice])
-      if (!core.SetNeed(target, n, amount)) return "ERR_NO_CHARACTER";
+      if (!needs.set(target, n, amount)) return "ERR_NO_CHARACTER";
     const label = Locale(
       `NEED_${choice.toUpperCase() as Uppercase<NeedChoice>}`,
     );
