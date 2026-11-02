@@ -1,8 +1,8 @@
-import { MENU_BACK } from "@aicore-fivem/shared";
-import { input, menu, triggerServerCallback } from "@aicore-fivem/lib/client";
+import { MENU_BACK } from "@aifivem/shared";
+import { input, menu, triggerServerCallback } from "@aifivem/lib/client";
 import { Locale } from "common";
 import { EVENTS } from "common/admin";
-import { WEATHERS } from "@aicore-fivem/shared";
+import { WEATHERS } from "@aifivem/shared";
 import { toWorldState } from "common/controls";
 import { run } from "../runAction";
 

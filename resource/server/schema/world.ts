@@ -1,4 +1,4 @@
-import { WEATHERS, type TabSpec } from "@aicore-fivem/shared";
+import { WEATHERS, type TabSpec } from "@aifivem/shared";
 
 const WEATHER_OPTIONS = [
   { value: "", label: "ADMIN_O_WEATHER_NONE" },

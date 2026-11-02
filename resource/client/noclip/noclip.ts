@@ -5,7 +5,7 @@ import {
   every,
   type Job,
   TickLoop,
-} from "@aicore-fivem/lib/client";
+} from "@aifivem/lib/client";
 import type { Settings } from "common/admin";
 import {
   attachCamera,

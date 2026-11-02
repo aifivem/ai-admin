@@ -1,4 +1,4 @@
-import { input } from "@aicore-fivem/lib/client";
+import { input } from "@aifivem/lib/client";
 
 /** A text typed in the input dialog (trimmed), or null when it was closed or left empty. */
 export async function typed(

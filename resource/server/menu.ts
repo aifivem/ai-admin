@@ -4,15 +4,15 @@ import {
   isOnline,
   onClientCallback,
   world,
-} from "@aicore-fivem/lib/server";
+} from "@aifivem/lib/server";
 import {
   fail,
   isRecord,
   readId,
   readInt,
   readText,
-} from "@aicore-fivem/lib/shared";
-import { ADMIN } from "@aicore-fivem/shared";
+} from "@aifivem/lib/shared";
+import { ADMIN } from "@aifivem/shared";
 import {
   EVENTS,
   isMenuAction,

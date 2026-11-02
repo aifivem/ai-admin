@@ -1,5 +1,5 @@
-import { resourceExport } from "@aicore-fivem/lib/server";
-import { ADMIN } from "@aicore-fivem/shared";
+import { resourceExport } from "@aifivem/lib/server";
+import { ADMIN } from "@aifivem/shared";
 import { Locale } from "common";
 import { actionLog } from "../actionLog";
 import type { Result } from "../actions/result";

@@ -1,4 +1,4 @@
-import { notify } from "@aicore-fivem/lib/server";
+import { notify } from "@aifivem/lib/server";
 
 /** A command's answer: a notification for a player, a console line for the server. */
 export const tell = (source: number, text: string) => {

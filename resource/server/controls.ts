@@ -1,4 +1,4 @@
-import { resourceExport, world } from "@aicore-fivem/lib/server";
+import { resourceExport, world } from "@aifivem/lib/server";
 import { readControls, type Controls } from "common/controls";
 import { actions } from "./actions";
 import { commitControls, panel } from "./content";

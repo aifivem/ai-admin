@@ -1,4 +1,4 @@
-import { aiLog, aiLogChannels } from "@aicore-fivem/lib/server";
+import { aiLog, aiLogChannels } from "@aifivem/lib/server";
 
 aiLogChannels({ actions: {} });
 

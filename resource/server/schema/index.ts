@@ -1,4 +1,4 @@
-import type { PanelSchema } from "@aicore-fivem/shared";
+import type { PanelSchema } from "@aifivem/shared";
 import { controlsFile, messagesTab } from "./messages";
 import { settingsFile, settingsTab } from "./settings";
 import { worldTab } from "./world";

@@ -1,4 +1,4 @@
-import { WEATHERS, type FileSpec, type TabSpec } from "@aicore-fivem/shared";
+import { WEATHERS, type FileSpec, type TabSpec } from "@aifivem/shared";
 import { NOTIFY_KINDS } from "common/controls";
 
 /**

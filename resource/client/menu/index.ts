@@ -1,4 +1,4 @@
-import { Keybind, onServerEvent } from "@aicore-fivem/lib/client";
+import { Keybind, onServerEvent } from "@aifivem/lib/client";
 import { Locale } from "common";
 import { EVENTS } from "common/admin";
 import { giveItem, openMenu } from "./menu";

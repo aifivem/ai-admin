@@ -1,4 +1,4 @@
-import { bool, int, num, record, str } from "@aicore-fivem/lib/shared";
+import { bool, int, num, record, str } from "@aifivem/lib/shared";
 
 /** ai-admin's contracts and panel content. No natives. */
 

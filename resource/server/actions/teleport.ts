@@ -1,4 +1,4 @@
-import { isOnline, notify } from "@aicore-fivem/lib/server";
+import { isOnline, notify } from "@aifivem/lib/server";
 import { Locale } from "common";
 import { EVENTS, type TeleportPoint } from "common/admin";
 import { actionLog } from "../actionLog";

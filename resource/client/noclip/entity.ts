@@ -1,4 +1,4 @@
-import { cache, raycast } from "@aicore-fivem/lib/client";
+import { cache, raycast } from "@aifivem/lib/client";
 
 /** Gives the entity and ped back to the world: unfrozen, colliding, visible, noticed. */
 export function releaseEntity(entity: number, ped: number): void {

@@ -1,4 +1,4 @@
-import { keyHints } from "@aicore-fivem/lib/client";
+import { keyHints } from "@aifivem/lib/client";
 import { Locale } from "common";
 
 /** The noclip controls in the HUD's key hints while flying. */

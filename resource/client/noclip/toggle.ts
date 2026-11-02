@@ -3,7 +3,7 @@ import {
   callAction,
   notify,
   triggerServerCallback,
-} from "@aicore-fivem/lib/client";
+} from "@aifivem/lib/client";
 import { Locale } from "common";
 import { EVENTS, readSettings } from "common/admin";
 import { noclipHints } from "./hints";

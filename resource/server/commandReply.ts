@@ -1,5 +1,5 @@
-import { notify } from "@aicore-fivem/lib/server";
-import { createLogger } from "@aicore-fivem/lib/shared";
+import { notify } from "@aifivem/lib/server";
+import { createLogger } from "@aifivem/lib/shared";
 import { Locale, ResourceName } from "common";
 import type { Result } from "./actions/result";
 

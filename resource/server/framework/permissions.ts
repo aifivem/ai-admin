@@ -1,4 +1,4 @@
-import { isOnline } from "@aicore-fivem/lib/server";
+import { isOnline } from "@aifivem/lib/server";
 import { Locale } from "common";
 import { actionLog } from "../actionLog";
 import type { Result } from "../actions/result";

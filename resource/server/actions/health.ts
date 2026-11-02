@@ -1,4 +1,4 @@
-import { isOnline, medical, needs, notify } from "@aicore-fivem/lib/server";
+import { isOnline, medical, needs, notify } from "@aifivem/lib/server";
 import { Locale } from "common";
 import { actionLog } from "../actionLog";
 import { playerName } from "../playerName";

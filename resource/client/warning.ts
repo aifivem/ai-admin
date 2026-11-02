@@ -1,4 +1,4 @@
-import { input, notify, onServerEvent } from "@aicore-fivem/lib/client";
+import { input, notify, onServerEvent } from "@aifivem/lib/client";
 import { Locale } from "common";
 import { EVENTS } from "common/admin";
 

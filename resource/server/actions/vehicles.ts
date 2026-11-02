@@ -9,8 +9,8 @@ import {
   vehicleKeys,
   vehicleOf,
   vehicleType,
-} from "@aicore-fivem/lib/server";
-import { VEHICLE_BAGS } from "@aicore-fivem/shared";
+} from "@aifivem/lib/server";
+import { VEHICLE_BAGS } from "@aifivem/shared";
 import { Locale } from "common";
 import { actionLog } from "../actionLog";
 import { content } from "../content";

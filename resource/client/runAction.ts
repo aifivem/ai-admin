@@ -1,4 +1,4 @@
-import { callAction } from "@aicore-fivem/lib/client";
+import { callAction } from "@aifivem/lib/client";
 import { EVENTS, type MenuAction } from "common/admin";
 
 /** Asks the server to run an action (it checks the admin again and logs); only failures are shown here. */

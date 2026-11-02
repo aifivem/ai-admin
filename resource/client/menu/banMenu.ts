@@ -1,5 +1,5 @@
-import { BAN_DURATIONS, MENU_BACK } from "@aicore-fivem/shared";
-import { menu } from "@aicore-fivem/lib/client";
+import { BAN_DURATIONS, MENU_BACK } from "@aifivem/shared";
+import { menu } from "@aifivem/lib/client";
 import { Locale } from "common";
 import { run } from "../runAction";
 import { typed } from "./typed";

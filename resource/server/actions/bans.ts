@@ -1,5 +1,5 @@
-import { bans, isOnline, notify, online } from "@aicore-fivem/lib/server";
-import { ADMIN } from "@aicore-fivem/shared";
+import { bans, isOnline, notify, online } from "@aifivem/lib/server";
+import { ADMIN } from "@aifivem/shared";
 import { Locale } from "common";
 import { playerLabel } from "../playerName";
 import type { Result } from "./result";

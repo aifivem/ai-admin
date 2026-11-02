@@ -1,6 +1,6 @@
 import { readSettings } from "common/admin";
 import { readControls } from "common/controls";
-import { AdminPanel } from "@aicore-fivem/lib/server";
+import { AdminPanel } from "@aifivem/lib/server";
 import { adminSchema } from "./schema";
 
 export const panel = new AdminPanel(adminSchema);

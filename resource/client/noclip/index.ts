@@ -1,4 +1,4 @@
-import { Keybind, onServerEvent, onStop } from "@aicore-fivem/lib/client";
+import { Keybind, onServerEvent, onStop } from "@aifivem/lib/client";
 import { Locale } from "common";
 import { EVENTS } from "common/admin";
 import { noclip, setNoclip } from "./toggle";

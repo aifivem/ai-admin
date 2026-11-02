@@ -1,4 +1,4 @@
-import { addCommand } from "@aicore-fivem/lib/server";
+import { addCommand } from "@aifivem/lib/server";
 import { Locale } from "common";
 import { EVENTS } from "common/admin";
 import { actions } from "../actions";

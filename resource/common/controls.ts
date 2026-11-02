@@ -1,9 +1,9 @@
-import { bool, int, record, str } from "@aicore-fivem/lib/shared";
+import { bool, int, record, str } from "@aifivem/lib/shared";
 import {
   isWeather,
   type NotificationKind,
   type Weather,
-} from "@aicore-fivem/shared";
+} from "@aifivem/shared";
 
 export const NOTIFY_KINDS: NotificationKind[] = [
   "info",
