@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.2](https://github.com/aifivem/ai-admin/compare/v0.3.1...v0.3.2) (2026-11-02)
+
+
+### Documentation
+
+* install from the release zip ([6ecf0bb](https://github.com/aifivem/ai-admin/commit/6ecf0bb14dac63dc83b11c23b22ead2721d00c16))
+
+
+### Miscellaneous Chores
+
+* build files are no longer in git, the release zip carries them ([fa33dc4](https://github.com/aifivem/ai-admin/commit/fa33dc408a4058e580a490be0f6c06995a42dac0))
+
 ## [0.3.1](https://github.com/aifivem/ai-admin/compare/v0.3.0...v0.3.1) (2026-11-02)
 
 
