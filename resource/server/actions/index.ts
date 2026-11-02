@@ -1,6 +1,7 @@
 import { banActions } from "./bans";
 import { characterActions } from "./characters";
 import { entityActions } from "./entities";
+import { fuelActions } from "./fuel";
 import { healthActions } from "./health";
 import { itemActions } from "./items";
 import { messageActions } from "./messages";
@@ -17,4 +18,5 @@ export const actions = {
   ...itemActions,
   ...characterActions,
   ...entityActions,
+  ...fuelActions,
 };
