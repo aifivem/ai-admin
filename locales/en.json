@@ -27,6 +27,7 @@
   "MENU_REVIVE_SELF": "Revive yourself",
   "MENU_CAR": "Spawn vehicle",
   "MENU_DV": "Delete vehicle",
+  "MENU_ADMINCAR": "Make this vehicle mine",
   "MENU_PLAYERS": "Players",
   "MENU_PLAYER": "[{0}] {1}",
   "MENU_PANEL": "Admin panel",
@@ -288,6 +289,7 @@
   "COMMAND_P_RADIUS": "Radius in metres",
   "COMMAND_VEHDEL": "Delete an owned vehicle for good (record and every copy in the world)",
   "COMMAND_P_VEHDEL": "Plate or player server id (empty: the vehicle you sit in)",
+  "COMMAND_ADMINCAR": "Make the vehicle you sit in your own (look and plate kept)",
   "COMMAND_DELETEPED": "Delete the NPCs around you (default 5 m; from the console: every NPC)",
   "COMMAND_DELETEOBJECT": "Delete the objects around you (default 5 m; from the console: every object)",
   "COMMAND_NPC": "Turn ambient pedestrians and traffic off or on for everyone",
@@ -319,6 +321,7 @@
   "NOTIFY_IS_ILLEGAL": "{0} is illegal.",
   "NOTIFY_IS_LEGAL": "{0} is legal.",
   "NOTIFY_VEHDEL": "Vehicle {0} deleted ({1} in the world).",
+  "NOTIFY_ADMINCAR": "The vehicle is now yours (plate {0}).",
   "NOTIFY_NPC_OFF": "Ambient NPCs and traffic are off for everyone.",
   "NOTIFY_NPC_ON": "Ambient NPCs and traffic are back.",
   "ERR_CITIZEN": "No character with that citizen id.",
@@ -336,5 +339,9 @@
   "ERR_VEHDEL": "The vehicle could not be deleted.",
   "ERR_NEED": "Use hunger, thirst or all.",
   "ERR_NEED_VALUE": "The value must be 0 to 100.",
-  "ERR_NO_CHARACTER": "That player has no character loaded."
+  "ERR_NO_CHARACTER": "That player has no character loaded.",
+  "ERR_ADMINCAR_OWNED": "This vehicle is already owned.",
+  "ERR_ADMINCAR_PLATE": "This vehicle's plate already belongs to an owned vehicle.",
+  "ERR_ADMINCAR_READ": "The vehicle could not be read.",
+  "ERR_ADMINCAR": "The vehicle could not be saved."
 }

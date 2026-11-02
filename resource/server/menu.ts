@@ -79,6 +79,8 @@ function runAction(
       return value ? actions.car(source, value) : "ERR_MODEL";
     case "dv":
       return actions.dv(source);
+    case "admincar":
+      return actions.adminCar(source);
     case "goto":
       return actions.goto(source, who);
     case "bring":

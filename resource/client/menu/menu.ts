@@ -139,6 +139,7 @@ export async function openMenu(): Promise<void> {
       { id: "revive", label: Locale("MENU_REVIVE_SELF"), icon: "user" },
       { id: "car", label: Locale("MENU_CAR"), icon: "car" },
       { id: "dv", label: Locale("MENU_DV"), icon: "car-rear" },
+      { id: "admincar", label: Locale("MENU_ADMINCAR"), icon: "car-side" },
       { id: "item", label: Locale("MENU_GIVE_ITEM"), icon: "box" },
       { id: "players", label: Locale("MENU_PLAYERS"), icon: "users" },
       { id: "bans", label: Locale("MENU_BANS"), icon: "gavel" },
@@ -181,6 +182,7 @@ export async function openMenu(): Promise<void> {
     case "heal":
     case "revive":
     case "dv":
+    case "admincar":
     case "panel":
     case "bans":
     case "npc":

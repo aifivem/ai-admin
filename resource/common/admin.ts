@@ -27,6 +27,8 @@ export const EVENTS = {
   worldState: "ai-admin:worldState",
   /** Server -> warned player: (reason: string) an admin's warning, shown until confirmed. */
   warned: "ai-admin:client:warned",
+  /** Client callback (server asks the admin): (netId) -> AdminCarRead | null the vehicle's model name and props (/admincar). */
+  readVehicle: "ai-admin:client:readVehicle",
 } as const;
 
 /** What the quick menu asks the server to do; the commands run the same actions. */
@@ -36,6 +38,7 @@ export const MENU_ACTIONS = [
   "revive",
   "car",
   "dv",
+  "admincar",
   "goto",
   "bring",
   "panel",
@@ -69,6 +72,21 @@ export interface TeleportPoint {
   x: number;
   y: number;
   z?: number;
+}
+
+/** The admin client's read of a vehicle for /admincar: GTA model name and lib VehicleProps (ai-vehicles checks both). */
+export interface AdminCarRead {
+  model: string;
+  props: unknown;
+}
+
+export function toAdminCarRead(v: unknown): AdminCarRead | null {
+  const r = record(v);
+  return typeof r.model === "string" &&
+    r.model.length > 0 &&
+    r.model.length <= 64
+    ? { model: r.model, props: r.props }
+    : null;
 }
 
 export interface PlayerEntry {

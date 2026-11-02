@@ -33,6 +33,15 @@ addCommand(
     ),
 );
 addCommand(
+  "admincar",
+  { help: Locale("COMMAND_ADMINCAR"), restricted: true },
+  (source) =>
+    answer(
+      source,
+      self(source, () => actions.adminCar(source)),
+    ),
+);
+addCommand(
   "vehdel",
   {
     help: Locale("COMMAND_VEHDEL"),
