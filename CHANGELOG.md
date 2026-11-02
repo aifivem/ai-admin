@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.0](https://github.com/aifivem/ai-admin/compare/v0.3.2...v0.4.0) (2026-11-02)
+
+
+### New Features
+
+* **admin:** add admincar, as QBCore's, to make the vehicle you sit in your own ([1b869e3](https://github.com/aifivem/ai-admin/commit/1b869e30ba529a44d71f759ef03ecbed4deac15d))
+* **admin:** add removemoney, citizenid money, setstatus, forcepaycheck, radius deletes, vehdel, editplayer, illegalset and npc ([7d74f1e](https://github.com/aifivem/ai-admin/commit/7d74f1ebc6787ce6b18b7c624f8f53a885f5eea7))
+* **admin:** add setfuel through ai-core's fuel layer ([17d86a6](https://github.com/aifivem/ai-admin/commit/17d86a6ae82f7d9ddd153b57c34f76ac6425a940))
+
+
+### Code Refactoring
+
+* **admin:** set needs through lib needs.set ([2c5b59f](https://github.com/aifivem/ai-admin/commit/2c5b59f15730d3f43c013b730bf26096eb8d11fe))
+
 ## [0.3.2](https://github.com/aifivem/ai-admin/compare/v0.3.1...v0.3.2) (2026-11-02)
 
 
